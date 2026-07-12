@@ -1,7 +1,7 @@
 {
 	"id": "yet-another-memos-sync",
 	"name": "Yet Another Memos Sync v0.21",
-	"version": "1.6.1",
+	"version": "1.6.2",
 	"minAppVersion": "1.0.0",
 	"description": "Memos v0.21 compatibility fork with legacy API sync, automatic Daily Note headings, and local image backup.",
 	"author": "baduyifei (fork), based on exusiaiwei",
