@@ -1,22 +1,26 @@
-## 🎉 What's New in 1.6.3
+## 🎉 What's New in 1.6.4
 
-### Changed
+### Critical fix
 
-- Changed the default Daily Memo heading for newly added profiles to `## Today's Memos`.
-- Changed the default attachment folder for new installations from `attachments` to `Attachments`.
-- Enabled Callout format by default for new installations.
-- The former saved default `attachments` is migrated to `Attachments`; other custom folders, profile headings, and format preferences are not forcibly overwritten.
+- Fixed repeated headings and memos when the configured `Today's Memos` heading used a straight apostrophe while historical templates used typographic `‘` or `’` characters.
+- Heading comparison now normalizes common straight and typographic apostrophes.
+- Numeric Memo block IDs such as `^1783037940` are now treated as unique keys across the entire Daily Note, not only inside the first matched section.
+- Existing Memo IDs use insert-only backup semantics: retain and ignore instead of overwriting, appending another copy, or deleting during force sync.
+- Force sync consolidates equivalent duplicate Memos sections and keeps only the first local backup for each duplicated ID.
+- A Memo is not inserted again when its ID already exists elsewhere in the Daily Note, even if no matching Memos heading is found.
 
 ---
 
-## 🎉 1.6.3 版本新功能
+## 🎉 1.6.4 版本新功能
 
-### 变更内容
+### 🚨 关键修复
 
-- 新建账户的“日记备忘录标题”默认值改为 `## Today's Memos`。
-- 新安装的附件存储文件夹默认值由 `attachments` 改为 `Attachments`。
-- 新安装时“使用 Callout 格式”默认启用。
-- 已保存的旧默认目录 `attachments` 会自动迁移为 `Attachments`；其他自定义目录、账户标题和格式设置不会被强制覆盖。
+- 修复 `Today's Memos` 标题使用直引号 `'`，而历史模板使用弯引号 `‘`/`’` 时，强制同步反复新增标题和 Memo 的严重重复问题。
+- 标题匹配现在统一识别 ASCII 直引号和常见 Unicode 弯引号。
+- 使用 Memo 的数字块 ID（例如 `^1783037940`）作为整篇 Daily Note 的唯一键，而不再只检查当前匹配到的标题区块。
+- 同一个 Memo ID 已存在时直接保留并忽略云端同 ID 内容，不覆盖、不追加第二份，也不因强制同步而删除。
+- 强制同步会自动合并等价的重复 Memos 标题区块；同一 ID 多次出现时只保留第一次出现的本地备份。
+- 没有匹配标题但文件其他位置已经存在该 Memo ID 时，也不会再次创建备份。
 
 ---
 
