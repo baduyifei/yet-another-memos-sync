@@ -55,9 +55,10 @@ https://github.com/baduyifei/yet-another-memos-sync
 | --- | --- |
 | Memos API URL | `https://your-memos.example.com` |
 | API token | Access token created in Memos |
-| Daily Memo heading | `## Today‘s Memos` |
+| Daily Memo heading | `## Today's Memos` (new-profile default) |
 | Sync days limit | `30`, or `0` for unlimited history |
-| Attachment folder | `Attachments` |
+| Attachment folder | `Attachments` (new-install default) |
+| Use Callout format | On by default |
 | Skip images | Off to back up images |
 
 After changing the heading, sync window, formatting, or attachment behavior, run **Force Sync All Memos** to reprocess historical content.

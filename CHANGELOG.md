@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.3] - 2026-07-12
+
+### Changed
+
+- Changed the default Daily Memo heading for newly added profiles to `## Today's Memos`.
+- Changed the default attachment folder for new installations from `attachments` to `Attachments`.
+- Enabled Callout format by default for new installations.
+- The former saved default `attachments` is migrated to `Attachments`; other custom folders, profile headings, and format preferences are not forcibly overwritten.
+
 ## [1.6.2] - 2026-07-12
 
 ### Added

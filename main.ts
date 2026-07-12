@@ -17,9 +17,9 @@ interface LegacySettings {
 const DEFAULT_SETTINGS: MemosSettings = {
 	profiles: [],
 
-	attachmentFolderPath: 'attachments',
+	attachmentFolderPath: 'Attachments',
 	createMissingDailyNotes: true,
-	useCalloutFormat: false,
+	useCalloutFormat: true,
 	useListCalloutFormat: false,
 	skipImages: false,
 
@@ -42,7 +42,7 @@ function defaultProfile(): MemosProfile {
 		name: 'Default',
 		apiUrl: '',
 		apiToken: '',
-		dailyMemoHeader: '## 📓 Memos',
+		dailyMemoHeader: "## Today's Memos",
 		syncDaysLimit: 30,
 		enabled: true,
 	};
@@ -62,7 +62,7 @@ function migrateSettings(raw: unknown): MemosSettings {
 	if (!Array.isArray(merged.profiles) || merged.profiles.length === 0) {
 		const legacyApiUrl = typeof legacy.apiUrl === 'string' ? legacy.apiUrl : '';
 		const legacyApiToken = typeof legacy.apiToken === 'string' ? legacy.apiToken : '';
-		const legacyHeader = typeof legacy.dailyMemoHeader === 'string' ? legacy.dailyMemoHeader : '## 📓 Memos';
+		const legacyHeader = typeof legacy.dailyMemoHeader === 'string' ? legacy.dailyMemoHeader : "## Today's Memos";
 		const legacyDays = typeof legacy.syncDaysLimit === 'number' ? legacy.syncDaysLimit : 30;
 
 		if (legacyApiUrl || legacyApiToken) {
@@ -85,6 +85,10 @@ function migrateSettings(raw: unknown): MemosSettings {
 	}
 	if (typeof merged.lastSyncDate !== 'string') {
 		merged.lastSyncDate = '';
+	}
+	// Migrate only the former built-in default; preserve every custom path.
+	if (merged.attachmentFolderPath === 'attachments') {
+		merged.attachmentFolderPath = 'Attachments';
 	}
 
 	// Strip legacy top-level fields so they don't get re-saved.
@@ -338,7 +342,7 @@ class YetAnotherMemosSyncSettingTab extends PluginSettingTab {
 			.setName(t.t('DAILY_HEADER_NAME'))
 			.setDesc(t.t('DAILY_HEADER_DESC'))
 			.addText(text => text
-				.setPlaceholder('## 📓 Memos')
+				.setPlaceholder("## Today's memos")
 				.setValue(profile.dailyMemoHeader)
 				.onChange(async (value) => {
 					profile.dailyMemoHeader = value;

@@ -159,10 +159,11 @@ Attachments/995-example.jpeg
 | --- | --- | --- |
 | Memos API URL | `https://your-memos.example.com` | 只填写服务器根地址，不要附加 `/api/v1/memo` |
 | API 令牌 | Memos Access Token | 从 Memos 账户设置创建 |
-| 日记备忘录标题 | `## Today‘s Memos` | 必须与希望写入的 Markdown 标题一致 |
+| 日记备忘录标题 | `## Today's Memos` | 新建账户的默认标题；必须与希望写入的 Markdown 标题一致 |
 | 同步天数限制 | `30` | `0` 表示处理全部历史数据 |
 | 自动创建缺失日记 | 开启 | 没有对应日期文件时使用 Daily Note 模板创建 |
-| 附件文件夹 | `Attachments` | 区分大小写，建议与 Obsidian 附件目录一致 |
+| 附件文件夹 | `Attachments` | 新安装的默认目录；区分大小写，建议与 Obsidian 附件目录一致 |
+| 使用 Callout 格式 | 开启 | 新安装时默认勾选，以 Callout 代码块样式写入 Memos |
 | 跳过图片 | 关闭 | 开启后不会备份图片 |
 
 ## 首次同步与历史数据补录

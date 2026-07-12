@@ -17,7 +17,7 @@ export class MemosResourceDownloader {
     attachmentFolderPath: string,
   ) {
     this.baseURL = baseURL.replace(/\/$/, '');
-    this.attachmentFolderPath = normalizePath(attachmentFolderPath.trim() || 'attachments');
+    this.attachmentFolderPath = normalizePath(attachmentFolderPath.trim() || 'Attachments');
   }
 
   async downloadAll(resources: Resource[]): Promise<void> {
