@@ -74,12 +74,12 @@ ${changelogContentZh}
 
 **Requirements / 系统要求:**
 - Obsidian v1.0.0 or higher / Obsidian v1.0.0 或更高版本
-- Memos server (supports v0.25.1 and legacy versions) / Memos 服务器（支持 v0.25.1 及历史版本）
+- Memos v0.21.0 (dedicated compatibility fork) / Memos v0.21.0（专用兼容版）
 
 **Links / 相关链接:**
-- 📖 [Documentation / 文档](https://github.com/exusiaiwei/yet-another-memos-sync#readme)
-- 🐛 [Report Issues / 报告问题](https://github.com/exusiaiwei/yet-another-memos-sync/issues)
-- 💡 [Feature Requests / 功能建议](https://github.com/exusiaiwei/yet-another-memos-sync/discussions)`;
+- 📖 [Documentation / 文档](https://github.com/baduyifei/yet-another-memos-sync#readme)
+- 🐛 [Report Issues / 报告问题](https://github.com/baduyifei/yet-another-memos-sync/issues)
+- 💡 [Feature Requests / 功能建议](https://github.com/baduyifei/yet-another-memos-sync/discussions)`;
 
   return template;
 }
