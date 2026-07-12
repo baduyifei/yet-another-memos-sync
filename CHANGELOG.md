@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.4] - 2026-07-12
+
+### Critical fix
+
+- Fixed repeated headings and memos when the configured `Today's Memos` heading used a straight apostrophe while historical templates used typographic `‘` or `’` characters.
+- Heading comparison now normalizes common straight and typographic apostrophes.
+- Numeric Memo block IDs such as `^1783037940` are now treated as unique keys across the entire Daily Note, not only inside the first matched section.
+- Existing Memo IDs use insert-only backup semantics: retain and ignore instead of overwriting, appending another copy, or deleting during force sync.
+- Force sync consolidates equivalent duplicate Memos sections and keeps only the first local backup for each duplicated ID.
+- A Memo is not inserted again when its ID already exists elsewhere in the Daily Note, even if no matching Memos heading is found.
+
 ## [1.6.3] - 2026-07-12
 
 ### Changed
