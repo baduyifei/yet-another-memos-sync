@@ -5,12 +5,31 @@
 import { mergeTodoStates, isSameExceptTodoStates } from './todoStateManager';
 
 /**
- * Generate regex for finding header section in daily note
+ * Normalize the configured section title to a Markdown heading.
+ */
+function formatHeader(header: string): string {
+  const trimmed = header.trim();
+  return /^#+/.test(trimmed) ? trimmed : `# ${trimmed}`;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Generate regex for finding header section in daily note.
  */
 function generateHeaderRegExp(header: string): RegExp {
-  const formattedHeader = /^#+/.test(header.trim()) ? header.trim() : `# ${header.trim()}`;
-  const reg = new RegExp(`(${formattedHeader}[^\n]*)([\\s\\S]*?)(?=\\n#|$)`);
+  const formattedHeader = formatHeader(header);
+  const reg = new RegExp(`(${escapeRegExp(formattedHeader)}[^\n]*)([\\s\\S]*?)(?=\\n#|$)`);
   return reg;
+}
+
+function sortMemoContent(records: Record<string, string>): string {
+  return Object.entries(records)
+    .sort(([timestampA], [timestampB]) => Number(timestampA) - Number(timestampB))
+    .map(([_, content]) => content)
+    .join("\n");
 }
 
 export class DailyNoteModifier {
@@ -35,10 +54,12 @@ export class DailyNoteModifier {
     const regMatch = originFileContent.match(reg);
 
     if (!regMatch?.length || regMatch.index === undefined) {
-      console.warn(
-        `Failed to find header "${header}" for ${today}. Please make sure your daily note template is correct.`
-      );
-      return;
+      const memoContent = sortMemoContent(fetchedRecordList);
+      if (!memoContent) return undefined;
+
+      const existingContent = originFileContent.trimEnd();
+      const section = `${formatHeader(header)}\n\n${memoContent}`;
+      return `${existingContent}${existingContent ? '\n\n' : ''}${section}\n`;
     }
 
     const localRecordContent = regMatch[2]?.trim();
@@ -138,10 +159,7 @@ export class DailyNoteModifier {
     }
 
     // Sort by timestamp and create final content
-    const sortedMemos = Array.from(allMemos.entries())
-      .sort((a, b) => Number(a[0]) - Number(b[0]))
-      .map(([_, content]) => content)
-      .join("\n");
+    const sortedMemos = sortMemoContent(Object.fromEntries(allMemos));
 
     const modifiedFileContent = prefix.trim() + `\n\n${sortedMemos}\n\n` + suffix.trim() + "\n";
     return modifiedFileContent;

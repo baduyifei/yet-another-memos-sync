@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.2] - 2026-07-12
+
+### Added
+
+- **Complete Memos v0.21.0 compatibility** using the legacy `/api/v1/memo` endpoint, array responses, `limit`/`offset` pagination, and legacy resource fields.
+- **Local image and attachment backup** through authenticated downloads from `/o/r/{uid}`.
+- **Vault-local attachment links** so synced Markdown references files stored inside the Obsidian vault.
+- **Automatic Daily Note heading insertion** when a historical note lacks the configured Memos heading and that date has memos to write.
+
+### Fixed
+
+- Fixed HTTP 404 errors caused by calling the newer `/api/v1/memos` endpoint against Memos v0.21.0.
+- Fixed missing history caused by unsupported CEL filtering and page-token pagination on v0.21.0.
+- Fixed broken image embeds that referenced attachment names without downloading the files.
+- Fixed force sync reporting success while silently skipping historical Daily Notes without a pre-existing heading.
+- Avoided empty headings on dates without memos and duplicate headings on repeated syncs.
+
+### Improved
+
+- Moved incremental timestamp filtering to the client for legacy-server compatibility.
+- Added attachment-directory creation, existing-file reuse, filename collision handling, and protection against sending private tokens to external domains.
+- Rewrote both READMEs with fork-specific installation, configuration, migration, troubleshooting, and development documentation.
+- Added `NOTICE.md` to document upstream attribution, modification scope, and copyright ownership.
+
+### Compatibility note
+
+- This is a dedicated compatibility fork for **Memos v0.21.0**. It is not intended as a drop-in build for servers that only expose the newer `/api/v1/memos` API.
+- The plugin ID is unchanged, so this fork and the upstream plugin must not be enabled at the same time.
+
 ## [1.6.1] - 2026-05-13
 
 ### Changed

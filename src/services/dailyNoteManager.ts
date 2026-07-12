@@ -6,6 +6,7 @@ import { MemosAPIClient } from '../api/memosClient';
 import { SimpleMemosPaginator } from '../api/memosPaginator';
 import { DailyNoteModifier } from '../utils/dailyNoteModifier';
 import { MemosProfile, MemosSettings } from '../types';
+import { MemosResourceDownloader } from './resourceDownloader';
 
 export interface SyncStateStore {
   getLastSync(profileId: string): string;
@@ -45,6 +46,12 @@ export class DailyNoteManager {
 
   private async syncProfile(profile: MemosProfile, mode: SyncMode): Promise<void> {
     const client = new MemosAPIClient(profile.apiUrl, profile.apiToken);
+    const downloader = new MemosResourceDownloader(
+      this.app,
+      profile.apiUrl,
+      profile.apiToken,
+      this.settings.attachmentFolderPath,
+    );
     const lastTime = this.state.getLastSync(profile.id);
 
     let effectiveLastTime: string;
@@ -74,6 +81,7 @@ export class DailyNoteManager {
       this.settings.useListCalloutFormat,
       this.settings.skipImages,
       profile.syncDaysLimit,
+      async resources => downloader.downloadAll(resources),
     );
 
     const newLastTime = await this.processMemos(paginator, profile, isIncrementalSync);

@@ -1,275 +1,89 @@
-<div align="center"><a name="readme-top"></a>
+# Yet Another Memos Sync — Memos v0.21 Compatibility Fork
 
-# 🗂️ Yet Another Memos Sync
+An Obsidian plugin fork dedicated to synchronizing self-hosted **Memos v0.21.x** content, images, and attachments into Daily Notes.
 
-An enhanced Obsidian plugin for synchronizing Memos with daily notes, featuring emoji timeline and intelligent formatting. 📝
+> This fork is based on [exusiaiwei/yet-another-memos-sync](https://github.com/exusiaiwei/yet-another-memos-sync) 1.6.1. It replaces the modern Memos client with a v0.21-compatible implementation and is not intended as a universal client for current Memos releases.
 
-**English** · [简体中文](./README.zh-CN.md) · [GitHub Repository][github-repo-link] · [Community Plugin][community-plugin-link]
+**English** · [简体中文（完整文档）](./README.zh-CN.md) · [Releases](https://github.com/baduyifei/yet-another-memos-sync/releases) · [Issues](https://github.com/baduyifei/yet-another-memos-sync/issues)
 
-[github-repo-link]: https://github.com/exusiaiwei/yet-another-memos-sync
-[community-plugin-link]: https://obsidian.md/plugins?search=yet%20another%20memos%20sync
+## Fork changes
 
-</div>
+### Full Memos v0.21 compatibility
 
-## Table of Contents
+- Uses `/api/v1/memo` instead of `/api/v1/memos`.
+- Uses `limit` and `offset` pagination.
+- Adapts the legacy JSON-array response to the plugin's internal page model.
+- Reads legacy `createdTs` and `resourceList` fields.
+- Removes unsupported server-side `created_ts` CEL requests.
+- Applies sync-window and incremental filtering locally.
 
-- [🗂️ Yet Another Memos Sync](#️-yet-another-memos-sync)
-  - [Table of Contents](#table-of-contents)
-  - [Background](#background)
-  - [Features](#features)
-  - [Installation](#installation)
-  - [Configuration](#configuration)
-  - [Usage](#usage)
-  - [Visual Formats](#visual-formats)
-  - [Development](#development)
-  - [Contributing](#contributing)
-  - [License](#license)
+### Local image and attachment backup
 
-## Background
+- Downloads internal resources from `/o/r/{resource.uid}`.
+- Sends the Memos token only to the configured Memos server.
+- Copies external resources locally without forwarding the private token.
+- Creates the configured attachment folder automatically.
+- Skips files that already exist.
+- Writes vault-local embeds such as `![[Attachments/996-image.png]]`.
 
-**Yet Another Memos Sync** is an enhanced Obsidian plugin that seamlessly synchronizes your [Memos](https://usememos.com/) with daily notes. Inspired by the original [obsidian-memos-sync](https://github.com/RyoJerryYu/obsidian-memos-sync) plugin, this version offers advanced features including emoji timeline, intelligent formatting, and robust synchronization strategies.
+### Automatic header insertion for historical Daily Notes
 
-Unlike basic sync tools, it provides visual enhancements, smart synchronization, and supports both modern and legacy Memos API versions.
-
-## Features
-
-### 🔄 **Smart Synchronization**
-
-- **Incremental sync** - Only updates changed content for better performance
-- **Time-limited sync** - Configurable day limits (default: 30 days) to control sync scope
-- **Deletion detection** - Automatically removes deleted memos from your notes
-- **Auto-sync options** - Startup and periodic synchronization capabilities
-
-### 🎨 **Visual Enhancements**
-
-- **List Callout Style** - Enhanced Markdown lists with emoji timeline (recommended)
-- **Callout Format** - Rich card-style presentation for detailed viewing
-- **Standard Format** - Clean Markdown lists with emoji enhancements
-- **Multi-line support** - Proper indentation handling for complex memo structures
-
-### 🌍 **Internationalization**
-
-- **Full i18n support** - English, Chinese, and extensible language system
-- **Auto-detection** - Automatically detects your Obsidian language preference
-- **Consistent UI** - Translated settings interface and user messages
-
-### ⚙️ **Flexible Configuration**
-
-- **API version support** - Compatible with Memos v0.25.1 and legacy versions
-- **Custom headers** - Configurable memo section headers for organization
-- **Attachment handling** - Download and organize memo attachments automatically
-- **Daily note integration** - Seamless integration with Daily Notes plugin
+- If the configured heading exists, its Memo section is updated.
+- If it is missing and that day has Memos, the heading and content are appended to the end of the file.
+- Empty headings are not created for days without Memos.
+- Repeated force syncs do not duplicate the heading.
 
 ## Installation
 
-### Community Plugins (Recommended)
+Download `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/baduyifei/yet-another-memos-sync/releases), then place them in:
 
-1. Open Obsidian Settings → Community plugins
-2. Disable Safe mode if not already disabled
-3. Click "Browse" and search for "Yet Another Memos Sync"
-4. Install and enable the plugin
+```text
+<Vault>/.obsidian/plugins/yet-another-memos-sync/
+```
 
-### Manual Installation
+When replacing the upstream community version, keep your existing `data.json` to preserve profiles, tokens, and sync state.
 
-1. Download the latest release from [GitHub Releases](https://github.com/exusiaiwei/yet-another-memos-sync/releases)
-2. Extract the files to `<vault>/.obsidian/plugins/yet-another-memos-sync/`
-3. Reload Obsidian and enable the plugin in Settings → Community Plugins
+This fork intentionally keeps the upstream plugin ID. It is a replacement installation and cannot run alongside the upstream plugin. It can also be installed with BRAT from:
 
-### Build from Source
+```text
+https://github.com/baduyifei/yet-another-memos-sync
+```
+
+## Required configuration
+
+| Setting | Example |
+| --- | --- |
+| Memos API URL | `https://your-memos.example.com` |
+| API token | Access token created in Memos |
+| Daily Memo heading | `## Today‘s Memos` |
+| Sync days limit | `30`, or `0` for unlimited history |
+| Attachment folder | `Attachments` |
+| Skip images | Off to back up images |
+
+After changing the heading, sync window, formatting, or attachment behavior, run **Force Sync All Memos** to reprocess historical content.
+
+## Build
 
 ```bash
-# Clone the repository
-git clone https://github.com/exusiaiwei/yet-another-memos-sync.git
+git clone https://github.com/baduyifei/yet-another-memos-sync.git
 cd yet-another-memos-sync
-
-# Install dependencies
 npm install
-
-# Build the plugin
+npm run lint
 npm run build
 ```
 
-## Configuration
+## Privacy
 
-### Basic Setup
+- No telemetry or analytics.
+- The Memos token is sent only to the configured Memos server.
+- Third-party external resource downloads never receive the Memos token.
+- Memo content and downloaded resources are written to the local Obsidian vault.
+- `data.json` contains secrets and is excluded from Git.
 
-1. Open **Settings** → **Yet Another Memos Sync**
-2. Configure your Memos server:
-   - **API URL**: Your Memos server address (e.g., `https://your-memos.com`)
-   - **API Token**: Generate from your Memos settings page
-   - **API Version**: Select your server version (v0.25.1 recommended)
+## Copyright and license
 
-### Visual Style Selection
+- Upstream code remains copyright of its original authors and contributors.
+- `Copyright © 2026 baduyifei` applies only to modifications introduced by this fork: Memos v0.21 API compatibility, legacy pagination and filtering, resource backup, local attachment links, and automatic Daily Note heading insertion.
+- This fork does not claim ownership of upstream code, Memos, Obsidian, or related third-party projects and trademarks.
 
-Choose one format that best suits your workflow:
-
-- **🎨 List Callout Style**: Enhanced lists with emoji timeline (recommended with [List Callouts plugin](https://github.com/mgmeyers/obsidian-list-callouts))
-- **📋 Callout Format**: Rich card-style presentation for detailed viewing
-- **📝 Standard Format**: Simple emoji-enhanced Markdown lists
-
-### Advanced Configuration
-
-<details>
-<summary><strong>📝 Sync Settings</strong></summary>
-
-- **Sync Days Limit**: Control sync scope (0 = unlimited, default: 30 days)
-- **Daily Note Headers**: Customize memo section titles
-- **Auto-create Notes**: Automatically create missing daily note files
-- **Attachment Folder**: Configure memo attachment storage location
-
-</details>
-
-<details>
-<summary><strong>🔄 Auto-Sync Options</strong></summary>
-
-- **Startup Sync**: Automatically sync when Obsidian starts
-- **Startup Delay**: Wait time before initial sync (default: 5 seconds)
-- **Skip if Synced Today**: Avoid duplicate syncs on the same day
-- **Periodic Sync**: Regular interval syncing (0 = disabled)
-
-</details>
-
-## Usage
-
-### Basic Operations
-
-- **🔄 Manual Sync**: Click the sync button in the ribbon or use Command Palette (`Ctrl/Cmd + P` → "Sync Memos")
-- **⚡ Force Sync**: Re-sync all memos, ignoring incremental sync cache
-- **🤖 Auto Sync**: Automatically syncs on Obsidian startup and at periodic intervals (if enabled)
-
-### Command Palette Commands
-
-- `Yet Another Memos Sync: Sync Memos` - Standard incremental sync
-- `Yet Another Memos Sync: Force Sync All Memos` - Complete re-sync
-- `Yet Another Memos Sync: Open Settings` - Quick access to plugin settings
-
-## Visual Formats
-
-### 🎨 List Callout Style (Recommended)
-
-The List Callout style creates beautiful, themed memo lists that integrate seamlessly with the [List Callouts plugin](https://github.com/mgmeyers/obsidian-list-callouts):
-
-```markdown
-- 🌅 07:30 Morning coffee and planning the day
-  - Reviewed project timeline
-  - Prepared meeting agenda
-- ☀️ 14:20 Productive afternoon work session
-- 🌆 18:30 Evening wrap-up and notes review
-- 🌙 22:15 Late night reading session
-```
-
-*When paired with List Callouts plugin, each time period gets beautiful colored themes*
-
-### 📋 Time Period Mapping
-
-The plugin uses a simplified 4-period emoji system for intuitive time organization:
-
-| **Period** | **Emoji** | **Time Range** | **List Callout Theme** | **Description** |
-|------------|-----------|----------------|------------------------|-----------------|
-| Early Morning | 🌅 | 05:00-12:00 | `[!info]` Blue | Peaceful dawn hours |
-| Noon | ☀️ | 12:00-17:00 | `[!tip]` Green | Energetic daytime |
-| Evening | 🌆 | 17:00-21:00 | `[!warning]` Orange | Warm sunset |
-| Night | 🌙 | 21:00-05:00 | `[!note]` Purple | Quiet nighttime |
-
-### 🔄 Other Format Examples
-
-#### Callout Format
-
-```markdown
-> [!memo] 🌅 07:30 Morning Memo
-> Planning the day with coffee ☕
-> - Review project timeline
-> - Prepare meeting agenda
-```
-
-#### Standard Format
-
-```markdown
-- 🌅 07:30 Morning coffee and planning
-- ☀️ 14:20 Productive work session
-- 🌆 18:30 Evening wrap-up
-```
-
-## Development
-
-### Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/exusiaiwei/yet-another-memos-sync.git
-cd yet-another-memos-sync
-
-# Install dependencies
-npm install
-
-# Development mode with auto-rebuild
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
-```
-
-### Supported Memos Versions
-
-- ✅ **v0.25.1** (Latest, recommended)
-- ✅ **v0.24.x** (Fully supported)
-- ✅ **v0.23.x** (Fully supported)
-- ✅ **v0.22.x** (Fully supported)
-- ✅ **v0.21.x** (Fully supported)
-- ✅ **Legacy versions** (v0.20 and below)
-
-## Contributing
-
-We welcome contributions from the community! Here's how you can help:
-
-### Ways to Contribute
-
-- 🐛 **Report bugs** via [GitHub Issues](https://github.com/exusiaiwei/yet-another-memos-sync/issues)
-- 💡 **Suggest features** through [GitHub Discussions](https://github.com/exusiaiwei/yet-another-memos-sync/discussions)
-- 🔀 **Submit pull requests** for improvements
-- 📖 **Improve documentation** and translations
-- 🌟 **Star the repository** to show your support
-
-### Development Guidelines
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-### Acknowledgments
-
-- Thanks to the original [obsidian-memos-sync](https://github.com/RyoJerryYu/obsidian-memos-sync) plugin for inspiration
-- [Memos](https://usememos.com/) for the excellent memo platform
-- [Obsidian](https://obsidian.md/) for the powerful note-taking platform
-- [List Callouts plugin](https://github.com/mgmeyers/obsidian-list-callouts) for beautiful visual themes
-
----
-
-<div align="center">
-
-### 💝 Support
-
-If this plugin helps you, consider:
-
-- ⭐ **Star this repository**
-- 🐛 **Report issues** to help improve
-- 🔀 **Contribute code** or documentation
-- 💬 **Share feedback** and suggestions
-
-*Made with ❤️ for the Obsidian community*
-
-</div>
+Distribution and use are governed by the repository's existing [LICENSE](./LICENSE). See [NOTICE.md](./NOTICE.md) for attribution and modification details. The full operational guide is available in [README.zh-CN.md](./README.zh-CN.md).

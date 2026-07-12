@@ -1,18 +1,9 @@
 import { moment } from 'obsidian';
-import { Memo, MemosPaginator, APIClient } from '../types';
+import { Memo, MemosPaginator, APIClient, Resource } from '../types';
 import { transformMemoToMarkdown } from '../utils/memoTransformer';
 
 const PAGE_SIZE = 200;
 const MAX_PAGES = 200;
-
-/**
- * Build the CEL filter for incremental sync and time-window cap.
- * Uses memos v0.28 schema field `created_ts` (unix seconds).
- */
-function buildFilter(lastTimestamp: number, cutoffTimestamp: number): string {
-  const since = Math.max(lastTimestamp, cutoffTimestamp);
-  return since > 0 ? `created_ts > ${since}` : '';
-}
 
 function extractTimestamp(memo: Memo): number | null {
   if (typeof memo.timestamp === 'number') return memo.timestamp;
@@ -36,6 +27,7 @@ export class SimpleMemosPaginator implements MemosPaginator {
     private useListCalloutFormat: boolean,
     private skipImages: boolean,
     private syncDaysLimit: number,
+    private onResources?: (resources: Resource[]) => Promise<void>,
   ) {}
 
   async foreach(handler: (dayData: [string, Record<string, string>]) => Promise<void>): Promise<string> {
@@ -46,14 +38,15 @@ export class SimpleMemosPaginator implements MemosPaginator {
       ? moment().subtract(this.syncDaysLimit, 'days').startOf('day').unix()
       : 0;
     const lastTimestamp = this.lastTime ? parseInt(this.lastTime) : 0;
-    const filter = buildFilter(lastTimestamp, cutoffTimestamp);
 
     let pageToken = '';
     let pages = 0;
     let exhausted = false;
 
     while (!exhausted) {
-      const page = await this.client.listMemos({ pageSize: PAGE_SIZE, pageToken, filter });
+      // Memos v0.21 does not support the modern created_ts CEL filter. Fetch
+      // legacy pages and apply the time-window and incremental filters below.
+      const page = await this.client.listMemos({ pageSize: PAGE_SIZE, pageToken });
       pages += 1;
 
       for (const memo of page.memos) {
@@ -67,11 +60,19 @@ export class SimpleMemosPaginator implements MemosPaginator {
           if (cutoffTimestamp > 0 && timestamp < cutoffTimestamp) continue;
           if (lastTimestamp > 0 && timestamp <= lastTimestamp) continue;
 
+          const allResources = memo.attachments || memo.resourceList || memo.resources || [];
+          const resourcesToDownload = this.skipImages
+            ? allResources.filter(resource => !resource.type?.includes('image'))
+            : allResources;
+          if (this.onResources && resourcesToDownload.length > 0) {
+            await this.onResources(resourcesToDownload);
+          }
+
           const dailyMemo = transformMemoToMarkdown(
             {
               timestamp,
               content: memo.content,
-              resources: memo.attachments || memo.resourceList || memo.resources || [],
+              resources: allResources,
             },
             this.useCalloutFormat,
             this.useListCalloutFormat,

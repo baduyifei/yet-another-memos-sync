@@ -14,13 +14,14 @@ export interface Memo {
 }
 
 export interface Resource {
-  id?: string;
+  id?: number | string;
   name?: string;
   filename?: string;
   type?: string;
   size?: number;
   externalLink?: string;
   uid?: string;
+  localPath?: string;
 }
 
 export interface DailyMemo {

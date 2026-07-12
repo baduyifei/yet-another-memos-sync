@@ -2,14 +2,17 @@ import { requestUrl, RequestUrlResponse } from 'obsidian';
 import { APIClient, ListMemosOptions, ListMemosPage, Memo } from '../types';
 import { t } from '../i18n/translationManager';
 
-interface ListMemosResponse {
-  memos?: Memo[];
-  nextPageToken?: string;
+interface LegacyListMemosResponse {
+  data?: Memo[];
 }
 
 /**
- * HTTP client for the memos /api/v1/memos endpoint.
- * Supports CEL filter and proper page-token pagination.
+ * HTTP client for the Memos v0.21.x /api/v1/memo endpoint.
+ *
+ * Memos v0.21 uses limit/offset pagination and returns a JSON array. Newer
+ * Memos versions use /api/v1/memos, page tokens, CEL filters and an object
+ * response. This client adapts the legacy response to the plugin's internal
+ * ListMemosPage shape so the rest of the sync pipeline can stay unchanged.
  * Uses Obsidian's requestUrl so it works on both desktop and mobile.
  */
 export class MemosAPIClient implements APIClient {
@@ -22,12 +25,14 @@ export class MemosAPIClient implements APIClient {
   }
 
   async listMemos(opts: ListMemosOptions = {}): Promise<ListMemosPage> {
+    const pageSize = opts.pageSize ?? 100;
+    const parsedOffset = Number.parseInt(opts.pageToken ?? '0', 10);
+    const offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
     const params = new URLSearchParams();
-    params.set('pageSize', String(opts.pageSize ?? 100));
-    if (opts.pageToken) params.set('pageToken', opts.pageToken);
-    if (opts.filter) params.set('filter', opts.filter);
+    params.set('limit', String(pageSize));
+    params.set('offset', String(offset));
 
-    const url = `${this.baseURL}/api/v1/memos?${params.toString()}`;
+    const url = `${this.baseURL}/api/v1/memo?${params.toString()}`;
 
     let response: RequestUrlResponse;
     try {
@@ -55,10 +60,22 @@ export class MemosAPIClient implements APIClient {
       throw new Error(`${t.t('FETCH_MEMOS_ERROR')}: HTTP ${response.status}${detail}`);
     }
 
-    const data = response.json as ListMemosResponse;
+    const data = response.json as Memo[] | LegacyListMemosResponse;
+    const memos = Array.isArray(data)
+      ? data
+      : Array.isArray(data.data)
+        ? data.data
+        : null;
+
+    if (memos === null) {
+      throw new Error(`${t.t('FETCH_MEMOS_ERROR')}: unexpected Memos v0.21 response format`);
+    }
+
     return {
-      memos: data.memos ?? [],
-      nextPageToken: data.nextPageToken ?? '',
+      memos,
+      // A full page may have a following page. An exact multiple causes one
+      // harmless final empty request, which then terminates pagination.
+      nextPageToken: memos.length === pageSize ? String(offset + memos.length) : '',
     };
   }
 }

@@ -1,10 +1,10 @@
 {
 	"id": "yet-another-memos-sync",
-	"name": "Yet Another Memos Sync",
+	"name": "Yet Another Memos Sync v0.21",
 	"version": "1.6.1",
 	"minAppVersion": "1.0.0",
-	"description": "Enhanced Memos sync plugin with emoji timeline and List Callout format support. Features intelligent sync, visual enhancements, and i18n support.",
-	"author": "exusiaiwei",
-	"authorUrl": "https://github.com/exusiaiwei",
+	"description": "Memos v0.21 compatibility fork with legacy API sync, automatic Daily Note headings, and local image backup.",
+	"author": "baduyifei (fork), based on exusiaiwei",
+	"authorUrl": "https://github.com/baduyifei",
 	"isDesktopOnly": true
 }

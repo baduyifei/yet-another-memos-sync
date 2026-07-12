@@ -6,6 +6,9 @@ import { getTimeEmoji } from './timeEmoji';
  * Generate resource link for attachment
  */
 export function generateResourceLink(resource: Resource): string {
+  if (resource.localPath) {
+    return `![[${resource.localPath}]]`;
+  }
   if (!resource.externalLink) {
     return `![[${generateResourceName(resource)}]]`;
   }
@@ -17,7 +20,9 @@ export function generateResourceLink(resource: Resource): string {
  * Generate safe filename for resource
  */
 export function generateResourceName(resource: Resource): string {
-  return `${resource.id}-${resource.filename?.replace(/[/\\?%*:|"<>]/g, "-")}`;
+  const id = resource.id ?? resource.uid ?? 'resource';
+  const filename = resource.filename || resource.name?.split('/').pop() || 'attachment';
+  return `${id}-${filename.replace(/[/\\?%*:|"<>]/g, "-")}`;
 }
 
 /**
