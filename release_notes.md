@@ -1,36 +1,36 @@
-## 🎉 What's New in 1.6.7
+## 🎉 What's New in 1.6.8
 
-### UID-driven updates and cross-date moves
+### Remote-authoritative Memos mirror
 
-- Force sync now upserts by permanent UID: an existing UID is updated to the current Memos content, time, Callout, and attachment references instead of ignoring remote edits.
-- When a Memo's `createdTs` moves to another day, the latest record is written to the target Daily Note before the old UID block is removed from other dates.
-- Cross-date moves use copy-then-delete ordering. A target write failure leaves the old backup intact.
-- Source Daily Notes remove only the matching Memo block while retaining the Memos heading, other Memos, Timelog, Notes, properties, and Bases.
-- Historical duplicates, legacy timestamp aliases, and incorrect `memos-{id}` aliases are cleaned up as part of the move.
-- Repeating force sync after a content or date update is idempotent; the vault ends with exactly one copy at the current remote date.
-- Attachment files remain safely preserved when a Memo moves.
+- Force Sync now treats Memos as the authoritative source: remote creates are inserted, edits are updated by permanent UID, creation-date changes move records between Daily Notes, and remote deletions remove the matching local Memo block.
+- Force Sync ignores the configured day limit and reads the complete paginated history before computing deletions, preventing out-of-window history from being mistaken for deleted data.
+- Reconciliation only removes plugin-managed blocks under the configured account heading. Properties, Timelog, Notes, Bases, other headings, and ordinary Daily Note content remain untouched.
+- Destructive reconciliation is safety-gated: it runs only after remote pagination, Memo conversion, attachment processing, and all local writes complete successfully. Any incomplete step skips deletion.
+- Smart and Incremental sync remain non-destructive because their snapshots are incomplete.
+- Force Sync replaces managed Memo content with the current remote representation. Downloaded attachment files remain preserved even when a remote Memo is deleted.
+- Deletion reconciliation is disabled when multiple enabled profiles share the same Daily Memo heading, preventing one account from deleting another account's records.
 
-### Sync scope
+### Tests
 
-- The modified historical Memo must be returned by the API. Set the sync window to `0` and run force sync during migration.
+- Added regression coverage for reducing several local Memo blocks to the one UID present remotely while preserving the heading and unrelated Daily Note content.
 
 ---
 
-## 🎉 1.6.7 版本新功能
+## 🎉 1.6.8 版本新功能
 
-### 🎉 UID 驱动的内容更新与跨日移动
+### Memos 权威镜像与远端删除同步
 
-- 强制同步现在以永久 UID 执行 upsert：同 UID 已存在时更新为 Memos 当前正文、时间、Callout 和附件引用，而不是忽略远端修改。
-- 当 Memo 的 `createdTs` 改到另一天时，先在目标 Daily Note 写入最新记录，确认成功后再从其他日期删除旧 UID 块。
-- 跨日移动采用“先复制、后删除”的安全顺序，目标写入失败时保留旧位置，避免同步过程造成备份丢失。
-- 旧日期只删除对应 Memo 块，保留 `## Today's Memos` 标题、其他 Memo、Timelog、Notes、属性和 Bases。
-- 同一 UID 的历史重复、旧时间戳别名和错误 `memos-{id}` 别名会随移动一并清理。
-- 内容或时间更新后再次强制同步保持幂等，全库最终只保留远端当前日期对应的一份 UID。
-- 附件文件继续采用安全保留策略，不因 Memo 移动而删除本地文件。
+- “强制同步所有备忘录”现在将 Memos 作为唯一权威数据源：远端创建则本地创建，远端修改则按永久 UID 更新，远端改变创建日期则跨 Daily Note 移动，远端删除则移除 Obsidian 中对应的 Memo 块。
+- 强制同步自动忽略“同步天数限制”，完整读取 Memos 全部分页后再计算删除差集，避免把范围外的历史 Memo 误判为已删除。
+- 删除清理只作用于该账户配置标题下、带插件 Memo 块 ID 的记录；Daily Note 的属性、Timelog、Notes、Bases、其他标题和普通正文不受影响。
+- 增加删除安全闸门：只有远端分页完整结束、每条 Memo 转换成功、附件处理成功且所有本地写入成功后，才执行远端删除清理；任一步骤失败都会跳过删除阶段。
+- 智能同步和增量同步仍是非破坏性的，不根据不完整快照删除历史 Memo。
+- 强制同步使用远端当前正文精确覆盖插件管理的 Memo 块；本地附件实体文件仍保留，不因远端 Memo 删除而自动删除。
+- 多账户若使用同一个 Daily Memo 标题，会自动禁用删除清理，防止一个账户误删另一个账户的记录；需要为各账户配置不同标题后才能启用完整镜像删除。
 
-### 同步范围
+### 测试
 
-- 修改过创建时间的历史 Memo 必须被本次 API 拉取到；迁移时建议把同步天数设为 `0` 并执行强制同步。
+- 新增远端删除回归测试，验证多条本地 Memo 缩减为远端唯一记录，同时保留 Memos 标题和非 Memos 日记内容。
 
 ---
 
