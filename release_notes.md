@@ -1,32 +1,36 @@
-## 🎉 What's New in 1.6.6
+## 🎉 What's New in 1.6.7
 
-### UID field fix
+### UID-driven updates and cross-date moves
 
-- Fixed permanent UID detection for Memos v0.21.0. Its `/api/v1/memo` response exposes the permanent UID through `name`, not `uid`.
-- Pagination now preserves `memo.name`, producing the correct block ID such as `^3gb9Yv9UB8nurg42kKtm3V`.
-- Database ID `1393` is no longer incorrectly emitted as `^memos-1393`.
-- Incorrect `^memos-{id}` blocks written by 1.6.5 are migrated in place to the permanent UID when their Memo is synchronized, without creating a second backup.
-- Added regression coverage for the v0.21 `{ id, name }` mapping and database-ID block migration.
+- Force sync now upserts by permanent UID: an existing UID is updated to the current Memos content, time, Callout, and attachment references instead of ignoring remote edits.
+- When a Memo's `createdTs` moves to another day, the latest record is written to the target Daily Note before the old UID block is removed from other dates.
+- Cross-date moves use copy-then-delete ordering. A target write failure leaves the old backup intact.
+- Source Daily Notes remove only the matching Memo block while retaining the Memos heading, other Memos, Timelog, Notes, properties, and Bases.
+- Historical duplicates, legacy timestamp aliases, and incorrect `memos-{id}` aliases are cleaned up as part of the move.
+- Repeating force sync after a content or date update is idempotent; the vault ends with exactly one copy at the current remote date.
+- Attachment files remain safely preserved when a Memo moves.
 
-### Source verification
+### Sync scope
 
-- The official Memos v0.21.0 v1 API defines `ID int32 json:"id"` and `Name string json:"name"`, and maps the permanent value with `Name: memo.UID`.
+- The modified historical Memo must be returned by the API. Set the sync window to `0` and run force sync during migration.
 
 ---
 
-## 🎉 1.6.6 版本新功能
+## 🎉 1.6.7 版本新功能
 
-### 🚨 UID 字段修复
+### 🎉 UID 驱动的内容更新与跨日移动
 
-- 修复 Memos v0.21.0 永久 UID 字段识别错误。该版本 `/api/v1/memo` 返回的永久 UID 位于 `name`，而不是 `uid`。
-- 分页转换现在保留 `memo.name`，块 ID 优先使用该永久值，例如 `^3gb9Yv9UB8nurg42kKtm3V`。
-- 不再把数据库数字 ID `1393` 错误输出为 `^memos-1393`。
-- 已由 1.6.5 写入的 `^memos-{id}` 会在同步到对应 Memo 时原地迁移为正确永久 UID，不产生第二份备份。
-- 新增 v0.21 `{ id, name }` 字段映射和错误数据库块 ID 迁移回归测试。
+- 强制同步现在以永久 UID 执行 upsert：同 UID 已存在时更新为 Memos 当前正文、时间、Callout 和附件引用，而不是忽略远端修改。
+- 当 Memo 的 `createdTs` 改到另一天时，先在目标 Daily Note 写入最新记录，确认成功后再从其他日期删除旧 UID 块。
+- 跨日移动采用“先复制、后删除”的安全顺序，目标写入失败时保留旧位置，避免同步过程造成备份丢失。
+- 旧日期只删除对应 Memo 块，保留 `## Today's Memos` 标题、其他 Memo、Timelog、Notes、属性和 Bases。
+- 同一 UID 的历史重复、旧时间戳别名和错误 `memos-{id}` 别名会随移动一并清理。
+- 内容或时间更新后再次强制同步保持幂等，全库最终只保留远端当前日期对应的一份 UID。
+- 附件文件继续采用安全保留策略，不因 Memo 移动而删除本地文件。
 
-### 技术依据
+### 同步范围
 
-- Memos v0.21.0 官方源码的 v1 API `Memo` 结构定义为 `ID int32 json:"id"`、`Name string json:"name"`，并通过 `Name: memo.UID` 返回永久 UID。
+- 修改过创建时间的历史 Memo 必须被本次 API 拉取到；迁移时建议把同步天数设为 `0` 并执行强制同步。
 
 ---
 
