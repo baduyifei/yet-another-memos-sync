@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.7] - 2026-07-13
+
+### UID-driven updates and cross-date moves
+
+- Force sync now upserts by permanent UID: an existing UID is updated to the current Memos content, time, Callout, and attachment references instead of ignoring remote edits.
+- When a Memo's `createdTs` moves to another day, the latest record is written to the target Daily Note before the old UID block is removed from other dates.
+- Cross-date moves use copy-then-delete ordering. A target write failure leaves the old backup intact.
+- Source Daily Notes remove only the matching Memo block while retaining the Memos heading, other Memos, Timelog, Notes, properties, and Bases.
+- Historical duplicates, legacy timestamp aliases, and incorrect `memos-{id}` aliases are cleaned up as part of the move.
+- Repeating force sync after a content or date update is idempotent; the vault ends with exactly one copy at the current remote date.
+- Attachment files remain safely preserved when a Memo moves.
+
+### Sync scope
+
+- The modified historical Memo must be returned by the API. Set the sync window to `0` and run force sync during migration.
+
 ## [1.6.6] - 2026-07-13
 
 ### UID field fix

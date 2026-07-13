@@ -27,7 +27,8 @@ An Obsidian plugin fork dedicated to synchronizing self-hosted **Memos v0.21.x**
 - Writes vault-local embeds such as `![[Attachments/996-image.png]]`.
 - Uses the permanent Memos UID as the Obsidian block ID and uniqueness key across all Daily Notes. Memos v0.21 exposes this UID as the v1 API `name` field.
 - Normalizes straight and typographic apostrophes in Memos headings and consolidates historical duplicate sections.
-- Uses insert-only backup semantics: an existing Memo ID is retained and never appended, overwritten, or deleted by force sync.
+- Force sync upserts current content and time by UID. If `createdTs` moves to another date, the record is written to the target Daily Note and then removed from its former date.
+- Cross-date moves use copy-then-delete ordering and preserve unrelated Daily Note content and local attachment files.
 - Migrates matching legacy timestamp block IDs to UID in place. After upgrading, set the sync window to `0` and force sync once before changing more historical Memo timestamps.
 - Migrates incorrect `^memos-{numeric-id}` blocks created by version 1.6.5 to the correct permanent UID in place.
 

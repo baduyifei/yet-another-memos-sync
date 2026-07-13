@@ -115,19 +115,26 @@ export class DailyNoteManager {
         }
 
         const currentContent = await this.app.vault.read(dailyNote);
-        const idsOutsideCurrentFile = this.getIdsOutsideFile(blockIdLocations, dailyNote.path);
         const modifiedContent = modifier.modifyDailyNote(
           currentContent,
           dateStr,
           memos,
           isIncrementalSync,
-          idsOutsideCurrentFile,
         );
 
         if (modifiedContent && modifiedContent !== currentContent) {
           await this.app.vault.modify(dailyNote, modifiedContent);
           this.updateBlockIdLocations(blockIdLocations, dailyNote.path, modifiedContent);
         }
+
+        // Move semantics are copy-then-delete: only remove old-date records
+        // after the target Daily Note has been written successfully.
+        await this.removeMemoRecordsFromOtherNotes(
+          memos,
+          dailyNote.path,
+          blockIdLocations,
+          modifier,
+        );
 
         const timestamps = Object.keys(memos)
           .map(recordKey => parseMemoRecordKey(recordKey).timestamp)
@@ -144,6 +151,46 @@ export class DailyNoteManager {
     });
 
     return lastTime;
+  }
+
+  private async removeMemoRecordsFromOtherNotes(
+    memos: Record<string, string>,
+    targetPath: string,
+    locations: Map<string, Set<string>>,
+    modifier: DailyNoteModifier,
+  ): Promise<void> {
+    const removalsByPath = new Map<string, Set<string>>();
+
+    for (const recordKey of Object.keys(memos)) {
+      const identity = parseMemoRecordKey(recordKey);
+      const aliases = [identity.blockId, identity.legacyTimestampId, identity.legacyDatabaseId]
+        .filter((alias, index, values) => Boolean(alias) && values.indexOf(alias) === index);
+
+      for (const alias of aliases) {
+        for (const path of locations.get(alias) ?? []) {
+          if (path === targetPath) continue;
+          const ids = removalsByPath.get(path) ?? new Set<string>();
+          for (const identityAlias of aliases) ids.add(identityAlias);
+          removalsByPath.set(path, ids);
+        }
+      }
+    }
+
+    for (const [sourcePath, idsToRemove] of removalsByPath) {
+      const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
+      if (!(sourceFile instanceof TFile)) continue;
+
+      try {
+        const sourceContent = await this.app.vault.read(sourceFile);
+        const modifiedSource = modifier.removeMemoRecords(sourceContent, idsToRemove);
+        if (modifiedSource && modifiedSource !== sourceContent) {
+          await this.app.vault.modify(sourceFile, modifiedSource);
+          this.updateBlockIdLocations(locations, sourcePath, modifiedSource);
+        }
+      } catch (error) {
+        console.warn(`Failed to move Memos out of ${sourcePath}:`, error);
+      }
+    }
   }
 
   private async buildBlockIdLocations(): Promise<Map<string, Set<string>>> {
@@ -166,14 +213,6 @@ export class DailyNoteManager {
     }
 
     return locations;
-  }
-
-  private getIdsOutsideFile(locations: Map<string, Set<string>>, currentPath: string): Set<string> {
-    const result = new Set<string>();
-    for (const [blockId, paths] of locations) {
-      if (Array.from(paths).some(path => path !== currentPath)) result.add(blockId);
-    }
-    return result;
   }
 
   private updateBlockIdLocations(

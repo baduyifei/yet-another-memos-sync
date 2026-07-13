@@ -3,6 +3,7 @@
  */
 
 import { parseMemoRecordKey } from './memoIdentity';
+import { mergeTodoStates } from './todoStateManager';
 
 interface HeaderSection {
   start: number;
@@ -125,9 +126,9 @@ export class DailyNoteModifier {
   /**
    * Modify daily note content with fetched memos.
    *
-   * Memos UID block IDs are the uniqueness key. Legacy numeric timestamp IDs
-   * are recognized as aliases and migrated in place. A memo that already
-   * exists anywhere in the Daily Note is never appended again.
+   * Memos UID block IDs are the uniqueness key. Legacy IDs are recognized as
+   * aliases and migrated in place. Existing UID content is updated rather than
+   * appended, so force sync behaves as an idempotent upsert.
    */
   modifyDailyNote(
     originFileContent: string,
@@ -202,7 +203,8 @@ export class DailyNoteModifier {
         const keptId = existingAliases[0];
         const keptContent = allMemos.get(keptId) as string;
         for (const alias of aliases) allMemos.delete(alias);
-        allMemos.set(blockId, replaceBlockId(keptContent, keptId, blockId));
+        const normalizedLocalContent = replaceBlockId(keptContent, keptId, blockId);
+        allMemos.set(blockId, mergeTodoStates(normalizedLocalContent, remoteContent));
       } else {
         allMemos.set(blockId, remoteContent);
       }
@@ -217,6 +219,47 @@ export class DailyNoteModifier {
     // Remove later equivalent sections from the end first so the first
     // section's offsets remain valid, then replace the first with one canonical
     // deduplicated section.
+    let modified = originFileContent;
+    for (let index = sections.length - 1; index >= 1; index -= 1) {
+      const section = sections[index];
+      modified = modified.slice(0, section.start) + modified.slice(section.end);
+    }
+    const first = sections[0];
+    modified = modified.slice(0, first.start) + canonicalSection + modified.slice(first.end);
+
+    return modified === originFileContent ? undefined : modified;
+  }
+
+  /**
+   * Remove specific Memo identities from managed Memos sections. The heading
+   * remains in place when the final Memo moves to another Daily Note.
+   */
+  removeMemoRecords(originFileContent: string, idsToRemove: Set<string>): string | undefined {
+    if (idsToRemove.size === 0) return undefined;
+
+    const canonicalHeader = formatHeader(this.dailyMemosHeader);
+    const sections = findHeaderSections(originFileContent, canonicalHeader);
+    if (sections.length === 0) return undefined;
+
+    const existingMemos = new Map<string, string>();
+    let removed = false;
+    for (const section of sections) {
+      const sectionContent = originFileContent.slice(section.contentStart, section.end).trim();
+      for (const [blockId, record] of parseMemoRecords(sectionContent)) {
+        if (idsToRemove.has(blockId)) {
+          removed = true;
+        } else if (!existingMemos.has(blockId)) {
+          existingMemos.set(blockId, record);
+        }
+      }
+    }
+    if (!removed) return undefined;
+
+    const remainingContent = sortMemoContent(existingMemos);
+    const canonicalSection = remainingContent
+      ? `${canonicalHeader}\n\n${remainingContent}\n\n`
+      : `${canonicalHeader}\n\n`;
+
     let modified = originFileContent;
     for (let index = sections.length - 1; index >= 1; index -= 1) {
       const section = sections[index];

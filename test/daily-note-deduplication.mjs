@@ -76,8 +76,8 @@ Other content
   assert.equal((repaired.match(/\^1783037940\b/g) ?? []).length, 0);
   assert.equal((repaired.match(new RegExp(`\\^${uid}\\b`, 'g')) ?? []).length, 1);
   assert.equal((repaired.match(/^## Today.s Memos$/gm) ?? []).length, 1);
-  assert.match(repaired, /First local backup/);
-  assert.doesNotMatch(repaired, /Duplicate backup|Remote edit/);
+  assert.match(repaired, /Remote edit/);
+  assert.doesNotMatch(repaired, /First local backup|Duplicate backup/);
 
   const wrongDatabaseIdNote = `# Note\n\n## Today's Memos\n\n> [!info] Existing\n> ^${databaseBlockId}\n`;
   const migratedDatabaseIdNote = modifier.modifyDailyNote(
@@ -88,14 +88,26 @@ Other content
   );
   assert.ok(migratedDatabaseIdNote);
   assert.match(migratedDatabaseIdNote, new RegExp(`\\^${uid}\\b`));
+  assert.match(migratedDatabaseIdNote, /Remote edit/);
   assert.doesNotMatch(migratedDatabaseIdNote, /\^memos-1393\b/);
 
   const movedTimestamp = 1784000000;
   const movedRecordKey = createMemoRecordKey(uid, movedTimestamp, databaseBlockId);
+  const movedRemoteMemo = `> [!tip] 14:30\n> Updated after moving time\n>\n> ^${uid}`;
+  const updatedInPlace = modifier.modifyDailyNote(
+    repaired,
+    '2026-07-14',
+    { [movedRecordKey]: movedRemoteMemo },
+    false,
+  );
+  assert.ok(updatedInPlace, 'changing content or time should update the existing UID record');
+  assert.match(updatedInPlace, /14:30/);
+  assert.match(updatedInPlace, /Updated after moving time/);
+  assert.equal((updatedInPlace.match(new RegExp(`\\^${uid}\\b`, 'g')) ?? []).length, 1);
   assert.equal(
-    modifier.modifyDailyNote(repaired, '2026-07-14', { [movedRecordKey]: remoteMemo }, false),
+    modifier.modifyDailyNote(updatedInPlace, '2026-07-14', { [movedRecordKey]: movedRemoteMemo }, false),
     undefined,
-    'changing the timestamp must not duplicate a UID-backed memo',
+    'repeating the same force sync must be idempotent',
   );
 
   const existingElsewhere = `# Note\n\n## Archive\n\n${remoteMemo}\n`;
@@ -108,6 +120,24 @@ Other content
   const firstBackup = modifier.modifyDailyNote('# Note\n', '2026-07-03', { [recordKey]: remoteMemo }, false);
   assert.ok(firstBackup);
   assert.equal((firstBackup.match(new RegExp(`\\^${uid}\\b`, 'g')) ?? []).length, 1);
+
+  const anotherUid = 'anotherStableMemoUid123';
+  const oldDateNote = `# Old date\n\n## Today's Memos\n\n${remoteMemo}\n\n> [!info] Keep me\n> ^${anotherUid}\n`;
+  const oldDateAfterMove = modifier.removeMemoRecords(oldDateNote, new Set([uid]));
+  assert.ok(oldDateAfterMove, 'the source Daily Note should change during a cross-date move');
+  assert.doesNotMatch(oldDateAfterMove, new RegExp(`\\^${uid}\\b`));
+  assert.match(oldDateAfterMove, new RegExp(`\\^${anotherUid}\\b`));
+  assert.match(oldDateAfterMove, /^## Today's Memos$/m, 'the empty-capable Memos heading should be retained');
+
+  const newDateNote = modifier.modifyDailyNote(
+    '# New date\n',
+    '2026-07-14',
+    { [movedRecordKey]: movedRemoteMemo },
+    false,
+  );
+  assert.ok(newDateNote);
+  assert.equal((newDateNote.match(new RegExp(`\\^${uid}\\b`, 'g')) ?? []).length, 1);
+  assert.match(newDateNote, /Updated after moving time/);
 
   assert.equal(
     modifier.modifyDailyNote('# Different day\n', '2026-07-14', { [movedRecordKey]: remoteMemo }, false, new Set([uid])),
