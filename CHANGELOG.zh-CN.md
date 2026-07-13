@@ -2,6 +2,20 @@
 
 所有项目的重要变更都会记录在此文件中。
 
+## [1.6.6] - 2026-07-13
+
+### 🚨 UID 字段修复
+
+- 修复 Memos v0.21.0 永久 UID 字段识别错误。该版本 `/api/v1/memo` 返回的永久 UID 位于 `name`，而不是 `uid`。
+- 分页转换现在保留 `memo.name`，块 ID 优先使用该永久值，例如 `^3gb9Yv9UB8nurg42kKtm3V`。
+- 不再把数据库数字 ID `1393` 错误输出为 `^memos-1393`。
+- 已由 1.6.5 写入的 `^memos-{id}` 会在同步到对应 Memo 时原地迁移为正确永久 UID，不产生第二份备份。
+- 新增 v0.21 `{ id, name }` 字段映射和错误数据库块 ID 迁移回归测试。
+
+### 技术依据
+
+- Memos v0.21.0 官方源码的 v1 API `Memo` 结构定义为 `ID int32 json:"id"`、`Name string json:"name"`，并通过 `Name: memo.UID` 返回永久 UID。
+
 ## [1.6.5] - 2026-07-13
 
 ### 🎉 稳定 UID 身份

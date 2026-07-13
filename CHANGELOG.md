@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.6] - 2026-07-13
+
+### UID field fix
+
+- Fixed permanent UID detection for Memos v0.21.0. Its `/api/v1/memo` response exposes the permanent UID through `name`, not `uid`.
+- Pagination now preserves `memo.name`, producing the correct block ID such as `^3gb9Yv9UB8nurg42kKtm3V`.
+- Database ID `1393` is no longer incorrectly emitted as `^memos-1393`.
+- Incorrect `^memos-{id}` blocks written by 1.6.5 are migrated in place to the permanent UID when their Memo is synchronized, without creating a second backup.
+- Added regression coverage for the v0.21 `{ id, name }` mapping and database-ID block migration.
+
+### Source verification
+
+- The official Memos v0.21.0 v1 API defines `ID int32 json:"id"` and `Name string json:"name"`, and maps the permanent value with `Name: memo.UID`.
+
 ## [1.6.5] - 2026-07-13
 
 ### Stable UID identity

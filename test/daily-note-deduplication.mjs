@@ -23,21 +23,25 @@ try {
   });
 
   const { DailyNoteModifier } = await import(pathToFileURL(bundlePath).href);
-  const { createMemoRecordKey, getMemoBlockId, parseMemoRecordKey } = await import(
+  const { createMemoRecordKey, getLegacyDatabaseBlockId, getMemoBlockId, parseMemoRecordKey } = await import(
     pathToFileURL(identityBundlePath).href
   );
   const modifier = new DailyNoteModifier("## Today's Memos");
   const timestamp = '1783037940';
   const uid = 'j3czVVLfdaXpHNwTitnB7B';
-  const recordKey = createMemoRecordKey(uid, Number(timestamp));
+  const databaseBlockId = 'memos-1393';
+  const recordKey = createMemoRecordKey(uid, Number(timestamp), databaseBlockId);
   const remoteMemo = `> [!info] 08:19\n> Remote edit\n>\n> ^${uid}`;
 
   assert.equal(getMemoBlockId({ uid, content: '' }, Number(timestamp)), uid);
+  assert.equal(getMemoBlockId({ name: uid, id: 1393, content: '' }, Number(timestamp)), uid);
   assert.equal(getMemoBlockId({ id: 996, content: '' }, Number(timestamp)), 'memos-996');
   assert.equal(getMemoBlockId({ content: '' }, Number(timestamp)), timestamp);
+  assert.equal(getLegacyDatabaseBlockId({ id: 1393, content: '' }), databaseBlockId);
   assert.deepEqual(parseMemoRecordKey(recordKey), {
     blockId: uid,
     legacyTimestampId: timestamp,
+    legacyDatabaseId: databaseBlockId,
     timestamp: Number(timestamp),
   });
   const duplicatedNote = `# 2026-07-03
@@ -75,8 +79,19 @@ Other content
   assert.match(repaired, /First local backup/);
   assert.doesNotMatch(repaired, /Duplicate backup|Remote edit/);
 
+  const wrongDatabaseIdNote = `# Note\n\n## Today's Memos\n\n> [!info] Existing\n> ^${databaseBlockId}\n`;
+  const migratedDatabaseIdNote = modifier.modifyDailyNote(
+    wrongDatabaseIdNote,
+    '2026-07-03',
+    { [recordKey]: remoteMemo },
+    false,
+  );
+  assert.ok(migratedDatabaseIdNote);
+  assert.match(migratedDatabaseIdNote, new RegExp(`\\^${uid}\\b`));
+  assert.doesNotMatch(migratedDatabaseIdNote, /\^memos-1393\b/);
+
   const movedTimestamp = 1784000000;
-  const movedRecordKey = createMemoRecordKey(uid, movedTimestamp);
+  const movedRecordKey = createMemoRecordKey(uid, movedTimestamp, databaseBlockId);
   assert.equal(
     modifier.modifyDailyNote(repaired, '2026-07-14', { [movedRecordKey]: remoteMemo }, false),
     undefined,

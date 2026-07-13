@@ -5,6 +5,7 @@ const RECORD_KEY_SEPARATOR = '::';
 export interface MemoRecordIdentity {
   blockId: string;
   legacyTimestampId: string;
+  legacyDatabaseId: string;
   timestamp: number;
 }
 
@@ -23,6 +24,10 @@ export function getMemoBlockId(memo: Memo, timestamp: number): string {
   const uid = typeof memo.uid === 'string' ? sanitizeBlockId(memo.uid) : '';
   if (uid) return uid;
 
+  // Memos v0.21 exposes the permanent memo UID as the v1 API `name` field.
+  const legacyApiName = typeof memo.name === 'string' ? sanitizeBlockId(memo.name) : '';
+  if (legacyApiName) return legacyApiName;
+
   if (memo.id !== undefined && memo.id !== null) {
     const stableId = sanitizeBlockId(String(memo.id));
     if (stableId) return `memos-${stableId}`;
@@ -31,24 +36,30 @@ export function getMemoBlockId(memo: Memo, timestamp: number): string {
   return String(timestamp);
 }
 
+export function getLegacyDatabaseBlockId(memo: Memo): string {
+  if (memo.id === undefined || memo.id === null) return '';
+  const stableId = sanitizeBlockId(String(memo.id));
+  return stableId ? `memos-${stableId}` : '';
+}
+
 /**
  * Internal record keys carry both the immutable block ID and the legacy
  * timestamp. The latter lets existing ^1234567890 backups migrate in place.
  */
-export function createMemoRecordKey(blockId: string, timestamp: number): string {
-  return `${blockId}${RECORD_KEY_SEPARATOR}${timestamp}`;
+export function createMemoRecordKey(blockId: string, timestamp: number, legacyDatabaseId = ''): string {
+  return `${blockId}${RECORD_KEY_SEPARATOR}${timestamp}${RECORD_KEY_SEPARATOR}${legacyDatabaseId}`;
 }
 
 export function parseMemoRecordKey(recordKey: string): MemoRecordIdentity {
-  const separatorIndex = recordKey.lastIndexOf(RECORD_KEY_SEPARATOR);
-  if (separatorIndex > 0) {
-    const blockId = recordKey.slice(0, separatorIndex);
-    const timestampText = recordKey.slice(separatorIndex + RECORD_KEY_SEPARATOR.length);
+  const parts = recordKey.split(RECORD_KEY_SEPARATOR);
+  if (parts.length >= 2) {
+    const [blockId, timestampText, legacyDatabaseId = ''] = parts;
     const timestamp = Number.parseInt(timestampText, 10);
     if (blockId && Number.isFinite(timestamp) && timestamp > 0) {
       return {
         blockId,
         legacyTimestampId: timestampText,
+        legacyDatabaseId,
         timestamp,
       };
     }
@@ -58,6 +69,7 @@ export function parseMemoRecordKey(recordKey: string): MemoRecordIdentity {
   return {
     blockId: recordKey,
     legacyTimestampId: /^\d+$/.test(recordKey) ? recordKey : '',
+    legacyDatabaseId: '',
     timestamp: Number.isFinite(legacyTimestamp) ? legacyTimestamp : 0,
   };
 }

@@ -1,7 +1,7 @@
 import { moment } from 'obsidian';
 import { Memo, Resource, DailyMemo } from '../types';
 import { getTimeEmoji } from './timeEmoji';
-import { createMemoRecordKey, getMemoBlockId } from './memoIdentity';
+import { createMemoRecordKey, getLegacyDatabaseBlockId, getMemoBlockId } from './memoIdentity';
 
 /**
  * Generate resource link for attachment
@@ -82,7 +82,7 @@ export function transformMemoToMarkdown(memo: Memo, useCalloutFormat = false, us
   const time = momentDate.format("HH:mm");
   const hour = momentDate.hour();
   const blockId = getMemoBlockId(memo, timestamp);
-  const recordKey = createMemoRecordKey(blockId, timestamp);
+  const recordKey = createMemoRecordKey(blockId, timestamp, getLegacyDatabaseBlockId(memo));
 
   // Use enhanced emoji for List Callout format
   const emoji = useListCalloutFormat ? getListCalloutEmoji(hour) : getTimeEmoji(hour);

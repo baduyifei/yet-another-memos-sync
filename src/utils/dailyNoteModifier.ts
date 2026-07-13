@@ -146,7 +146,8 @@ export class DailyNoteModifier {
       const sortTimestamps = new Map<string, number>();
       for (const [recordKey, remoteContent] of Object.entries(fetchedRecordList)) {
         const identity = parseMemoRecordKey(recordKey);
-        if (existingIds.has(identity.blockId) || existingIds.has(identity.legacyTimestampId)) continue;
+        const aliases = [identity.blockId, identity.legacyTimestampId, identity.legacyDatabaseId].filter(Boolean);
+        if (aliases.some(alias => existingIds.has(alias))) continue;
         newRecords.set(identity.blockId, remoteContent);
         sortTimestamps.set(identity.blockId, identity.timestamp);
       }
@@ -181,34 +182,28 @@ export class DailyNoteModifier {
 
     for (const [recordKey, remoteContent] of Object.entries(fetchedRecordList)) {
       const identity = parseMemoRecordKey(recordKey);
-      const { blockId, legacyTimestampId, timestamp } = identity;
+      const { blockId, legacyTimestampId, legacyDatabaseId, timestamp } = identity;
+      const aliases = [blockId, legacyTimestampId, legacyDatabaseId]
+        .filter((alias, index, values) => Boolean(alias) && values.indexOf(alias) === index);
 
       // The same Memo ID elsewhere in the note is already backed up. Never add
       // another copy under the configured heading.
-      if (outsideIds.has(blockId) || outsideIds.has(legacyTimestampId)) {
-        allMemos.delete(blockId);
-        if (legacyTimestampId !== blockId) allMemos.delete(legacyTimestampId);
+      if (aliases.some(alias => outsideIds.has(alias))) {
+        for (const alias of aliases) allMemos.delete(alias);
         continue;
       }
 
-      const hasUidRecord = allMemos.has(blockId);
-      const hasLegacyRecord = Boolean(legacyTimestampId)
-        && legacyTimestampId !== blockId
-        && allMemos.has(legacyTimestampId);
+      const idsInFileOrder = Array.from(allMemos.keys());
+      const existingAliases = aliases
+        .filter(alias => allMemos.has(alias))
+        .sort((idA, idB) => idsInFileOrder.indexOf(idA) - idsInFileOrder.indexOf(idB));
 
-      if (hasUidRecord && hasLegacyRecord) {
-        const idsInFileOrder = Array.from(allMemos.keys());
-        const uidFirst = idsInFileOrder.indexOf(blockId) < idsInFileOrder.indexOf(legacyTimestampId);
-        const keptId = uidFirst ? blockId : legacyTimestampId;
+      if (existingAliases.length > 0) {
+        const keptId = existingAliases[0];
         const keptContent = allMemos.get(keptId) as string;
-        allMemos.delete(blockId);
-        allMemos.delete(legacyTimestampId);
+        for (const alias of aliases) allMemos.delete(alias);
         allMemos.set(blockId, replaceBlockId(keptContent, keptId, blockId));
-      } else if (hasLegacyRecord) {
-        const legacyContent = allMemos.get(legacyTimestampId) as string;
-        allMemos.delete(legacyTimestampId);
-        allMemos.set(blockId, replaceBlockId(legacyContent, legacyTimestampId, blockId));
-      } else if (!hasUidRecord) {
+      } else {
         allMemos.set(blockId, remoteContent);
       }
       sortTimestamps.set(blockId, timestamp);

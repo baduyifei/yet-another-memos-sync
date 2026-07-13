@@ -71,6 +71,7 @@ export class SimpleMemosPaginator implements MemosPaginator {
           const dailyMemo = transformMemoToMarkdown(
             {
               id: memo.id,
+              name: memo.name,
               uid: memo.uid,
               timestamp,
               content: memo.content,
