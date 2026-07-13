@@ -134,7 +134,7 @@ export class DailyNoteModifier {
     originFileContent: string,
     _today: string,
     fetchedRecordList: Record<string, string>,
-    _isIncrementalSync = false,
+    isIncrementalSync = false,
     idsOutsideCurrentFile = new Set<string>(),
   ): string | undefined {
     const canonicalHeader = formatHeader(this.dailyMemosHeader);
@@ -204,7 +204,12 @@ export class DailyNoteModifier {
         const keptContent = allMemos.get(keptId) as string;
         for (const alias of aliases) allMemos.delete(alias);
         const normalizedLocalContent = replaceBlockId(keptContent, keptId, blockId);
-        allMemos.set(blockId, mergeTodoStates(normalizedLocalContent, remoteContent));
+        allMemos.set(
+          blockId,
+          isIncrementalSync
+            ? mergeTodoStates(normalizedLocalContent, remoteContent)
+            : remoteContent,
+        );
       } else {
         allMemos.set(blockId, remoteContent);
       }
@@ -269,5 +274,15 @@ export class DailyNoteModifier {
     modified = modified.slice(0, first.start) + canonicalSection + modified.slice(first.end);
 
     return modified === originFileContent ? undefined : modified;
+  }
+
+  getManagedMemoIds(originFileContent: string): Set<string> {
+    const sections = findHeaderSections(originFileContent, formatHeader(this.dailyMemosHeader));
+    const result = new Set<string>();
+    for (const section of sections) {
+      const sectionContent = originFileContent.slice(section.contentStart, section.end).trim();
+      for (const blockId of parseMemoRecords(sectionContent).keys()) result.add(blockId);
+    }
+    return result;
   }
 }

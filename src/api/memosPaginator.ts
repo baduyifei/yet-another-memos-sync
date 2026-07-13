@@ -1,5 +1,5 @@
 import { moment } from 'obsidian';
-import { Memo, MemosPaginator, APIClient, Resource } from '../types';
+import { Memo, MemosPaginator, APIClient, Resource, MemosPaginationResult } from '../types';
 import { transformMemoToMarkdown } from '../utils/memoTransformer';
 
 const PAGE_SIZE = 200;
@@ -30,9 +30,11 @@ export class SimpleMemosPaginator implements MemosPaginator {
     private onResources?: (resources: Resource[]) => Promise<void>,
   ) {}
 
-  async foreach(handler: (dayData: [string, Record<string, string>]) => Promise<void>): Promise<string> {
+  async foreach(handler: (dayData: [string, Record<string, string>]) => Promise<void>): Promise<MemosPaginationResult> {
     const dailyMemosByDay: Record<string, Record<string, string>> = {};
+    const recordKeys = new Set<string>();
     let latestTimestamp = '';
+    let complete = true;
 
     const cutoffTimestamp = this.syncDaysLimit > 0
       ? moment().subtract(this.syncDaysLimit, 'days').startOf('day').unix()
@@ -84,11 +86,13 @@ export class SimpleMemosPaginator implements MemosPaginator {
 
           if (!dailyMemosByDay[dailyMemo.date]) dailyMemosByDay[dailyMemo.date] = {};
           dailyMemosByDay[dailyMemo.date][dailyMemo.recordKey] = dailyMemo.content;
+          recordKeys.add(dailyMemo.recordKey);
 
           if (!latestTimestamp || timestamp > parseInt(latestTimestamp)) {
             latestTimestamp = String(timestamp);
           }
         } catch (error) {
+          complete = false;
           console.warn('Failed to process memo:', memo, error);
         }
       }
@@ -97,6 +101,7 @@ export class SimpleMemosPaginator implements MemosPaginator {
         exhausted = true;
       } else if (pages > MAX_PAGES) {
         console.warn(`Stopping after ${pages} pages to avoid runaway pagination`);
+        complete = false;
         exhausted = true;
       } else {
         pageToken = page.nextPageToken;
@@ -107,6 +112,10 @@ export class SimpleMemosPaginator implements MemosPaginator {
       await handler([date, dayMemos]);
     }
 
-    return latestTimestamp || this.lastTime;
+    return {
+      latestTimestamp: latestTimestamp || this.lastTime,
+      recordKeys,
+      complete,
+    };
   }
 }

@@ -78,6 +78,12 @@ export interface APIClient {
   listMemos(opts?: ListMemosOptions): Promise<ListMemosPage>;
 }
 
+export interface MemosPaginationResult {
+  latestTimestamp: string;
+  recordKeys: Set<string>;
+  complete: boolean;
+}
+
 export interface MemosPaginator {
-  foreach(handler: (dayData: [string, Record<string, string>]) => Promise<void>): Promise<string>;
+  foreach(handler: (dayData: [string, Record<string, string>]) => Promise<void>): Promise<MemosPaginationResult>;
 }

@@ -24,11 +24,13 @@ The above copyright applies only to original modifications introduced in this fo
 6. Local image and attachment storage with vault-local Markdown links.
 7. Protection against forwarding the private Memos token to external resource hosts.
 8. Automatic insertion of a missing Memo heading in historical Daily Notes.
-9. Documentation and troubleshooting guidance specific to this compatibility fork.
+9. Permanent Memos v0.21 UID mapping, legacy identity migration, and vault-wide deduplication.
+10. UID-driven content updates and safe copy-then-delete movement between Daily Notes.
+11. Remote-authoritative force reconciliation, including safety-gated removal of remotely deleted Memo blocks.
+12. Documentation, tests, and troubleshooting guidance specific to this compatibility fork.
 
 No exclusive ownership is claimed over upstream code or third-party projects, names, logos, or trademarks, including Memos and Obsidian.
 
 ## License
 
 Use and distribution of this repository are governed by the existing `LICENSE` file. This notice supplements attribution and modification history; it does not replace or narrow the permissions in `LICENSE`.
-

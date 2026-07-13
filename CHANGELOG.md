@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.8] - 2026-07-13
+
+### Remote-authoritative Memos mirror
+
+- Force Sync now treats Memos as the authoritative source: remote creates are inserted, edits are updated by permanent UID, creation-date changes move records between Daily Notes, and remote deletions remove the matching local Memo block.
+- Force Sync ignores the configured day limit and reads the complete paginated history before computing deletions, preventing out-of-window history from being mistaken for deleted data.
+- Reconciliation only removes plugin-managed blocks under the configured account heading. Properties, Timelog, Notes, Bases, other headings, and ordinary Daily Note content remain untouched.
+- Destructive reconciliation is safety-gated: it runs only after remote pagination, Memo conversion, attachment processing, and all local writes complete successfully. Any incomplete step skips deletion.
+- Smart and Incremental sync remain non-destructive because their snapshots are incomplete.
+- Force Sync replaces managed Memo content with the current remote representation. Downloaded attachment files remain preserved even when a remote Memo is deleted.
+- Deletion reconciliation is disabled when multiple enabled profiles share the same Daily Memo heading, preventing one account from deleting another account's records.
+
+### Tests
+
+- Added regression coverage for reducing several local Memo blocks to the one UID present remotely while preserving the heading and unrelated Daily Note content.
+
 ## [1.6.7] - 2026-07-13
 
 ### UID-driven updates and cross-date moves

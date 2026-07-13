@@ -145,6 +145,26 @@ Other content
     'a UID already present in another Daily Note must block a cross-date duplicate',
   );
 
+  const deletedUidA = 'deletedRemoteMemoUidA';
+  const deletedUidB = 'deletedRemoteMemoUidB';
+  const mirrorNote = `---\ntags:\n  - daily\n---\n\n## Today's Notes\n\nDo not touch this text.\n\n## Today's Memos\n\n> [!info] Keep\n> ^${uid}\n\n> [!info] Deleted A\n> ^${deletedUidA}\n\n> [!warning] Deleted B\n> ^${deletedUidB}\n\n## Footer\n\nKeep the footer too.\n`;
+  assert.deepEqual(
+    modifier.getManagedMemoIds(mirrorNote),
+    new Set([uid, deletedUidA, deletedUidB]),
+  );
+  const remoteIds = new Set([uid]);
+  const staleIds = new Set(
+    Array.from(modifier.getManagedMemoIds(mirrorNote)).filter(id => !remoteIds.has(id)),
+  );
+  const mirrored = modifier.removeMemoRecords(mirrorNote, staleIds);
+  assert.ok(mirrored, 'remote deletions should remove stale managed Memo blocks');
+  assert.match(mirrored, new RegExp(`\\^${uid}\\b`));
+  assert.doesNotMatch(mirrored, new RegExp(`\\^${deletedUidA}\\b`));
+  assert.doesNotMatch(mirrored, new RegExp(`\\^${deletedUidB}\\b`));
+  assert.match(mirrored, /Do not touch this text\./);
+  assert.match(mirrored, /Keep the footer too\./);
+  assert.match(mirrored, /^## Today's Memos$/m);
+
   console.log('Daily Note deduplication tests passed');
 } finally {
   await rm(temporaryDirectory, { recursive: true, force: true });
