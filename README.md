@@ -31,9 +31,9 @@ An Obsidian plugin fork dedicated to synchronizing self-hosted **Memos v0.21.x**
 - Cross-date moves use copy-then-delete ordering and preserve unrelated Daily Note content and local attachment files.
 - Migrates matching legacy timestamp block IDs to UID in place. After upgrading, set the sync window to `0` and force sync once before changing more historical Memo timestamps.
 - Migrates incorrect `^memos-{numeric-id}` blocks created by version 1.6.5 to the correct permanent UID in place.
-- Force Sync is a remote-authoritative mirror: it fetches the complete remote history, creates and updates by UID, moves changed dates, and removes local managed blocks that no longer exist in Memos.
+- Force Sync is a remote-authoritative mirror inside the configured sync window: it creates and updates by UID, moves changed dates, and removes in-window local managed blocks that no longer exist in Memos.
 - Destructive deletion is skipped unless remote pagination and every local write complete successfully. Smart and Incremental sync never delete from an incomplete snapshot.
-- Force Sync ignores the day limit for deletion safety. It preserves unrelated Daily Note content and physical attachment files.
+- Force Sync respects the day limit and restricts destructive reconciliation to Daily Notes inside the same window. A value of `0` enables full-history mirroring. Unrelated content and physical attachment files remain preserved.
 - This is one-way Memos-to-Obsidian mirroring, not Obsidian-to-Memos editing. Multiple profiles must use distinct headings for deletion reconciliation.
 
 ### Automatic header insertion for historical Daily Notes
@@ -66,7 +66,7 @@ https://github.com/baduyifei/yet-another-memos-sync
 | Memos API URL | `https://your-memos.example.com` |
 | API token | Access token created in Memos |
 | Daily Memo heading | `## Today's Memos` (new-profile default) |
-| Sync days limit | `30` for Smart/Incremental; Force Sync always reads full history |
+| Sync days limit | `30` for a bounded window; all modes respect it; `0` means unlimited history |
 | Attachment folder | `Attachments` (new-install default) |
 | Use Callout format | On by default |
 | Skip images | Off to back up images |

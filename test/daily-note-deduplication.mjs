@@ -8,12 +8,14 @@ import { build } from 'esbuild';
 const temporaryDirectory = await mkdtemp(path.join(tmpdir(), 'yams-dedup-'));
 const bundlePath = path.join(temporaryDirectory, 'daily-note-modifier.mjs');
 const identityBundlePath = path.join(temporaryDirectory, 'memo-identity.mjs');
+const syncWindowBundlePath = path.join(temporaryDirectory, 'sync-window.mjs');
 
 try {
   await build({
     entryPoints: {
       'daily-note-modifier': 'src/utils/dailyNoteModifier.ts',
       'memo-identity': 'src/utils/memoIdentity.ts',
+      'sync-window': 'src/utils/syncWindow.ts',
     },
     bundle: true,
     platform: 'node',
@@ -26,6 +28,7 @@ try {
   const { createMemoRecordKey, getLegacyDatabaseBlockId, getMemoBlockId, parseMemoRecordKey } = await import(
     pathToFileURL(identityBundlePath).href
   );
+  const { isDailyNoteDateInSyncWindow } = await import(pathToFileURL(syncWindowBundlePath).href);
   const modifier = new DailyNoteModifier("## Today's Memos");
   const timestamp = '1783037940';
   const uid = 'j3czVVLfdaXpHNwTitnB7B';
@@ -164,6 +167,24 @@ Other content
   assert.match(mirrored, /Do not touch this text\./);
   assert.match(mirrored, /Keep the footer too\./);
   assert.match(mirrored, /^## Today's Memos$/m);
+
+  const sevenDayCutoff = Math.floor(Date.parse('2026-07-06T00:00:00+08:00') / 1000);
+  assert.equal(
+    isDailyNoteDateInSyncWindow('day-2026-07-06T00:00:00+08:00', sevenDayCutoff),
+    true,
+    'the first day of the configured window must be included',
+  );
+  assert.equal(
+    isDailyNoteDateInSyncWindow('day-2026-07-05T00:00:00+08:00', sevenDayCutoff),
+    false,
+    'notes older than the configured window must not be deletion candidates',
+  );
+  assert.equal(isDailyNoteDateInSyncWindow('not-a-daily-note', sevenDayCutoff), false);
+  assert.equal(
+    isDailyNoteDateInSyncWindow('day-2000-01-01T00:00:00+08:00', 0),
+    true,
+    'zero days must retain unlimited-history behavior',
+  );
 
   console.log('Daily Note deduplication tests passed');
 } finally {

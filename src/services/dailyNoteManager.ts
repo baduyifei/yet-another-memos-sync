@@ -8,6 +8,7 @@ import { DailyNoteModifier, extractMemoBlockIds } from '../utils/dailyNoteModifi
 import { MemosProfile, MemosSettings } from '../types';
 import { MemosResourceDownloader } from './resourceDownloader';
 import { parseMemoRecordKey } from '../utils/memoIdentity';
+import { isDailyNoteDateInSyncWindow } from '../utils/syncWindow';
 
 export interface SyncStateStore {
   getLastSync(profileId: string): string;
@@ -88,7 +89,7 @@ export class DailyNoteManager {
       this.settings.useCalloutFormat,
       this.settings.useListCalloutFormat,
       this.settings.skipImages,
-      forceFullSnapshot ? 0 : profile.syncDaysLimit,
+      profile.syncDaysLimit,
       async resources => downloader.downloadAll(resources),
     );
 
@@ -190,6 +191,7 @@ export class DailyNoteManager {
           modifier,
           paginationResult.recordKeys,
           blockIdLocations,
+          paginationResult.cutoffTimestamp,
         );
         if (!reconciliationComplete) {
           console.warn('Remote deletion reconciliation finished with local file errors');
@@ -257,12 +259,14 @@ export class DailyNoteManager {
     modifier: DailyNoteModifier,
     remoteRecordKeys: Set<string>,
     locations: Map<string, Set<string>>,
+    cutoffTimestamp: number,
   ): Promise<boolean> {
     const remoteIds = new Set(
       Array.from(remoteRecordKeys, recordKey => parseMemoRecordKey(recordKey).blockId),
     );
-    const dailyNotes = Object.values(getAllDailyNotes())
-      .map(file => this.app.vault.getAbstractFileByPath(file.path))
+    const dailyNotes = Object.entries(getAllDailyNotes())
+      .filter(([dateUid]) => isDailyNoteDateInSyncWindow(dateUid, cutoffTimestamp))
+      .map(([, file]) => this.app.vault.getAbstractFileByPath(file.path))
       .filter((file): file is TFile => file instanceof TFile);
     let complete = true;
 

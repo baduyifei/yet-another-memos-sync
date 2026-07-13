@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.9] - 2026-07-13
+
+### Restore scoped mirroring for the sync-day limit
+
+- Force Sync once again respects each profile's Sync Days Limit instead of overriding it with `0`.
+- Remote creates, edits, date changes, and deletion reconciliation are processed only inside that time window; `0` remains unlimited history.
+- Deletion reconciliation uses the exact cutoff applied to the API result and scans only in-window Daily Notes, preventing older local history from being treated as deleted merely because it was outside the partial snapshot.
+- When an in-window UID previously existed under another date, its old location is still removed to preserve vault-wide uniqueness.
+- Retains the complete-pagination gate, local-write gate, shared-heading protection, and attachment-file preservation introduced in 1.6.8.
+
+### Tests
+
+- Added sync-window boundary regression coverage for inclusive cutoff dates, excluded older notes, unlimited `0`, and safely excluded invalid date keys.
+
 ## [1.6.8] - 2026-07-13
 
 ### Remote-authoritative Memos mirror

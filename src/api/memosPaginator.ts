@@ -116,6 +116,7 @@ export class SimpleMemosPaginator implements MemosPaginator {
       latestTimestamp: latestTimestamp || this.lastTime,
       recordKeys,
       complete,
+      cutoffTimestamp,
     };
   }
 }

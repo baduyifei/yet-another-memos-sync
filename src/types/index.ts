@@ -82,6 +82,7 @@ export interface MemosPaginationResult {
   latestTimestamp: string;
   recordKeys: Set<string>;
   complete: boolean;
+  cutoffTimestamp: number;
 }
 
 export interface MemosPaginator {
