@@ -1,36 +1,32 @@
-## 🎉 What's New in 1.6.5
+## 🎉 What's New in 1.6.6
 
-### Stable UID identity
+### UID field fix
 
-- New backups use the permanent Memos `memo.uid` as the Obsidian block ID, for example `^j3czVVLfdaXpHNwTitnB7B`.
-- Identity fallback order is `memo.uid` → stable `memo.id` → creation timestamp; normal Memos v0.21.0 records therefore use UID.
-- Internal sync records carry both UID and the legacy timestamp alias. A matching historical `^timestamp` block is migrated in place to `^UID` instead of duplicated.
-- Editing Memo content, time, or date no longer changes its deduplication identity.
-- The uniqueness index now covers every Daily Note, preventing the same UID from being created again under a different date.
-- Added regression tests for UID selection, timestamp migration, time-change idempotency, and cross-date deduplication.
+- Fixed permanent UID detection for Memos v0.21.0. Its `/api/v1/memo` response exposes the permanent UID through `name`, not `uid`.
+- Pagination now preserves `memo.name`, producing the correct block ID such as `^3gb9Yv9UB8nurg42kKtm3V`.
+- Database ID `1393` is no longer incorrectly emitted as `^memos-1393`.
+- Incorrect `^memos-{id}` blocks written by 1.6.5 are migrated in place to the permanent UID when their Memo is synchronized, without creating a second backup.
+- Added regression coverage for the v0.21 `{ id, name }` mapping and database-ID block migration.
 
-### Migration note
+### Source verification
 
-- After upgrading, set the sync window to `0` and run force sync once to migrate all matching historical timestamp block IDs to UID.
-- If a historical Memo's timestamp changed before this migration, the old Markdown contains no UID and cannot always be matched deterministically from the obsolete timestamp alone; such rare records require one manual review.
+- The official Memos v0.21.0 v1 API defines `ID int32 json:"id"` and `Name string json:"name"`, and maps the permanent value with `Name: memo.UID`.
 
 ---
 
-## 🎉 1.6.5 版本新功能
+## 🎉 1.6.6 版本新功能
 
-### 🎉 稳定 UID 身份
+### 🚨 UID 字段修复
 
-- 新同步的 Memo 改用 Memos API 提供的永久 `memo.uid` 作为 Obsidian 块 ID，例如 `^j3czVVLfdaXpHNwTitnB7B`。
-- 唯一键优先级为 `memo.uid` → 稳定 `memo.id` → 时间戳回退；正常的 Memos v0.21.0 数据会始终使用 UID。
-- 内部同步记录同时携带 UID 和旧时间戳别名，发现历史 `^时间戳` 块时会原地改为 `^UID`，不会新增第二份。
-- Memo 修改内容、时间或日期后 UID 不变，因此不会因 `createdTs` 改变而失去去重身份。
-- 去重索引扩展到全部 Daily Notes；UID 已存在于任意日期文件时，不会在另一天再次创建。
-- 新增 UID 选择、旧时间戳迁移、修改时间幂等和跨日期去重的自动化回归测试。
+- 修复 Memos v0.21.0 永久 UID 字段识别错误。该版本 `/api/v1/memo` 返回的永久 UID 位于 `name`，而不是 `uid`。
+- 分页转换现在保留 `memo.name`，块 ID 优先使用该永久值，例如 `^3gb9Yv9UB8nurg42kKtm3V`。
+- 不再把数据库数字 ID `1393` 错误输出为 `^memos-1393`。
+- 已由 1.6.5 写入的 `^memos-{id}` 会在同步到对应 Memo 时原地迁移为正确永久 UID，不产生第二份备份。
+- 新增 v0.21 `{ id, name }` 字段映射和错误数据库块 ID 迁移回归测试。
 
-### 迁移说明
+### 技术依据
 
-- 升级后建议先把同步天数设为 `0` 并执行一次强制同步，使全部可对应的历史时间戳块 ID 原地迁移为 UID。
-- 如果某条历史 Memo 在迁移前已经改过时间，旧 Markdown 不含 UID，插件无法仅凭已经失效的旧时间戳确定对应关系；这类极少数记录需要人工确认一次。
+- Memos v0.21.0 官方源码的 v1 API `Memo` 结构定义为 `ID int32 json:"id"`、`Name string json:"name"`，并通过 `Name: memo.UID` 返回永久 UID。
 
 ---
 
