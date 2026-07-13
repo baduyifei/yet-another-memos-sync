@@ -26,7 +26,8 @@ export interface Resource {
 
 export interface DailyMemo {
   date: string;
-  timestamp: string;
+  timestamp: number;
+  recordKey: string;
   content: string;
 }
 

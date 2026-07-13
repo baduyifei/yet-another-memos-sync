@@ -25,9 +25,10 @@ An Obsidian plugin fork dedicated to synchronizing self-hosted **Memos v0.21.x**
 - Creates the configured attachment folder automatically.
 - Skips files that already exist.
 - Writes vault-local embeds such as `![[Attachments/996-image.png]]`.
-- Treats each numeric Memo block ID as unique across the entire Daily Note.
+- Uses the permanent Memos UID as the Obsidian block ID and uniqueness key across all Daily Notes.
 - Normalizes straight and typographic apostrophes in Memos headings and consolidates historical duplicate sections.
 - Uses insert-only backup semantics: an existing Memo ID is retained and never appended, overwritten, or deleted by force sync.
+- Migrates matching legacy timestamp block IDs to UID in place. After upgrading, set the sync window to `0` and force sync once before changing more historical Memo timestamps.
 
 ### Automatic header insertion for historical Daily Notes
 

@@ -4,9 +4,10 @@ import { getDailyNote, createDailyNote, getAllDailyNotes } from 'obsidian-daily-
 type MomentInstance = ReturnType<typeof moment>;
 import { MemosAPIClient } from '../api/memosClient';
 import { SimpleMemosPaginator } from '../api/memosPaginator';
-import { DailyNoteModifier } from '../utils/dailyNoteModifier';
+import { DailyNoteModifier, extractMemoBlockIds } from '../utils/dailyNoteModifier';
 import { MemosProfile, MemosSettings } from '../types';
 import { MemosResourceDownloader } from './resourceDownloader';
+import { parseMemoRecordKey } from '../utils/memoIdentity';
 
 export interface SyncStateStore {
   getLastSync(profileId: string): string;
@@ -96,6 +97,7 @@ export class DailyNoteManager {
     isIncrementalSync: boolean,
   ): Promise<string> {
     const modifier = new DailyNoteModifier(profile.dailyMemoHeader);
+    const blockIdLocations = await this.buildBlockIdLocations();
     let lastTime = '';
 
     await paginator.foreach(async ([dateStr, memos]) => {
@@ -113,15 +115,25 @@ export class DailyNoteManager {
         }
 
         const currentContent = await this.app.vault.read(dailyNote);
-        const modifiedContent = modifier.modifyDailyNote(currentContent, dateStr, memos, isIncrementalSync);
+        const idsOutsideCurrentFile = this.getIdsOutsideFile(blockIdLocations, dailyNote.path);
+        const modifiedContent = modifier.modifyDailyNote(
+          currentContent,
+          dateStr,
+          memos,
+          isIncrementalSync,
+          idsOutsideCurrentFile,
+        );
 
         if (modifiedContent && modifiedContent !== currentContent) {
           await this.app.vault.modify(dailyNote, modifiedContent);
+          this.updateBlockIdLocations(blockIdLocations, dailyNote.path, modifiedContent);
         }
 
-        const timestamps = Object.keys(memos);
+        const timestamps = Object.keys(memos)
+          .map(recordKey => parseMemoRecordKey(recordKey).timestamp)
+          .filter(timestamp => timestamp > 0);
         if (timestamps.length > 0) {
-          const latest = Math.max(...timestamps.map(t => parseInt(t))).toString();
+          const latest = Math.max(...timestamps).toString();
           if (!lastTime || parseInt(latest) > parseInt(lastTime)) {
             lastTime = latest;
           }
@@ -132,6 +144,52 @@ export class DailyNoteManager {
     });
 
     return lastTime;
+  }
+
+  private async buildBlockIdLocations(): Promise<Map<string, Set<string>>> {
+    const locations = new Map<string, Set<string>>();
+    const dailyNotes = Object.values(getAllDailyNotes())
+      .map(file => this.app.vault.getAbstractFileByPath(file.path))
+      .filter((file): file is TFile => file instanceof TFile);
+
+    for (const dailyNote of dailyNotes) {
+      try {
+        const content = await this.app.vault.cachedRead(dailyNote);
+        for (const blockId of extractMemoBlockIds(content)) {
+          const paths = locations.get(blockId) ?? new Set<string>();
+          paths.add(dailyNote.path);
+          locations.set(blockId, paths);
+        }
+      } catch (error) {
+        console.warn(`Failed to index block IDs in ${dailyNote.path}:`, error);
+      }
+    }
+
+    return locations;
+  }
+
+  private getIdsOutsideFile(locations: Map<string, Set<string>>, currentPath: string): Set<string> {
+    const result = new Set<string>();
+    for (const [blockId, paths] of locations) {
+      if (Array.from(paths).some(path => path !== currentPath)) result.add(blockId);
+    }
+    return result;
+  }
+
+  private updateBlockIdLocations(
+    locations: Map<string, Set<string>>,
+    filePath: string,
+    content: string,
+  ): void {
+    for (const [blockId, paths] of locations) {
+      paths.delete(filePath);
+      if (paths.size === 0) locations.delete(blockId);
+    }
+    for (const blockId of extractMemoBlockIds(content)) {
+      const paths = locations.get(blockId) ?? new Set<string>();
+      paths.add(filePath);
+      locations.set(blockId, paths);
+    }
   }
 
   private async getOrCreateDailyNote(momentDay: MomentInstance): Promise<TFile | null> {

@@ -1,6 +1,7 @@
 import { moment } from 'obsidian';
 import { Memo, Resource, DailyMemo } from '../types';
 import { getTimeEmoji } from './timeEmoji';
+import { createMemoRecordKey, getMemoBlockId } from './memoIdentity';
 
 /**
  * Generate resource link for attachment
@@ -80,6 +81,8 @@ export function transformMemoToMarkdown(memo: Memo, useCalloutFormat = false, us
   const date = momentDate.format("YYYY-MM-DD");
   const time = momentDate.format("HH:mm");
   const hour = momentDate.hour();
+  const blockId = getMemoBlockId(memo, timestamp);
+  const recordKey = createMemoRecordKey(blockId, timestamp);
 
   // Use enhanced emoji for List Callout format
   const emoji = useListCalloutFormat ? getListCalloutEmoji(hour) : getTimeEmoji(hour);
@@ -102,11 +105,12 @@ export function transformMemoToMarkdown(memo: Memo, useCalloutFormat = false, us
       "\n>\n" + resources.map(resource => `> ${generateResourceLink(resource)}`).join("\n") : "";
 
     // Create callout with proper formatting and extra newline for separation
-    const finalContent = `> [!${calloutType}] ${emoji} ${time} - ${timePeriod}\n${processedContent}${resourceLines}\n> \n> ^${timestamp}\n`;
+    const finalContent = `> [!${calloutType}] ${emoji} ${time} - ${timePeriod}\n${processedContent}${resourceLines}\n> \n> ^${blockId}\n`;
 
     return {
       date,
-      timestamp: String(timestamp),
+      timestamp,
+      recordKey,
       content: finalContent,
     };
   }
@@ -124,14 +128,15 @@ export function transformMemoToMarkdown(memo: Memo, useCalloutFormat = false, us
       targetFirstLine = `- ${emoji} ${time} ${mergedContent.replace(/^- /, "")}`;
     }
 
-    targetFirstLine += ` #daily-record ^${timestamp}`;
+    targetFirstLine += ` #daily-record ^${blockId}`;
 
     const targetResourceLines = resources?.length ?
       "\n" + resources.map(resource => `  - ${generateResourceLink(resource)}`).join("\n") : "";
 
     return {
       date,
-      timestamp: String(timestamp),
+      timestamp,
+      recordKey,
       content: targetFirstLine + targetResourceLines,
     };
   }
@@ -151,7 +156,7 @@ export function transformMemoToMarkdown(memo: Memo, useCalloutFormat = false, us
     targetFirstLine = `- ${emoji} ${time} ${firstLine.replace(/^- /, "")}`;
   }
 
-  targetFirstLine += ` #daily-record ^${timestamp}`;
+  targetFirstLine += ` #daily-record ^${blockId}`;
 
   // Process multi-line content properly (use 2 spaces for list indentation)
   const targetOtherLines = otherLines?.length ?
@@ -165,7 +170,8 @@ export function transformMemoToMarkdown(memo: Memo, useCalloutFormat = false, us
 
   return {
     date,
-    timestamp: String(timestamp),
+    timestamp,
+    recordKey,
     content: targetFirstLine + targetOtherLines + targetResourceLines,
   };
 }

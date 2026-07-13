@@ -70,6 +70,8 @@ export class SimpleMemosPaginator implements MemosPaginator {
 
           const dailyMemo = transformMemoToMarkdown(
             {
+              id: memo.id,
+              uid: memo.uid,
               timestamp,
               content: memo.content,
               resources: allResources,
@@ -80,7 +82,7 @@ export class SimpleMemosPaginator implements MemosPaginator {
           );
 
           if (!dailyMemosByDay[dailyMemo.date]) dailyMemosByDay[dailyMemo.date] = {};
-          dailyMemosByDay[dailyMemo.date][dailyMemo.timestamp] = dailyMemo.content;
+          dailyMemosByDay[dailyMemo.date][dailyMemo.recordKey] = dailyMemo.content;
 
           if (!latestTimestamp || timestamp > parseInt(latestTimestamp)) {
             latestTimestamp = String(timestamp);

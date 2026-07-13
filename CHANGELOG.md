@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.5] - 2026-07-13
+
+### Stable UID identity
+
+- New backups use the permanent Memos `memo.uid` as the Obsidian block ID, for example `^j3czVVLfdaXpHNwTitnB7B`.
+- Identity fallback order is `memo.uid` → stable `memo.id` → creation timestamp; normal Memos v0.21.0 records therefore use UID.
+- Internal sync records carry both UID and the legacy timestamp alias. A matching historical `^timestamp` block is migrated in place to `^UID` instead of duplicated.
+- Editing Memo content, time, or date no longer changes its deduplication identity.
+- The uniqueness index now covers every Daily Note, preventing the same UID from being created again under a different date.
+- Added regression tests for UID selection, timestamp migration, time-change idempotency, and cross-date deduplication.
+
+### Migration note
+
+- After upgrading, set the sync window to `0` and run force sync once to migrate all matching historical timestamp block IDs to UID.
+- If a historical Memo's timestamp changed before this migration, the old Markdown contains no UID and cannot always be matched deterministically from the obsolete timestamp alone; such rare records require one manual review.
+
 ## [1.6.4] - 2026-07-12
 
 ### Critical fix
